@@ -1,0 +1,1 @@
+ALTER TABLE "quotations" DROP COLUMN "covid_rate";

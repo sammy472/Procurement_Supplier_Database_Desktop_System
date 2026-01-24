@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1767866991782,
+      "tag": "0000_overrated_hellfire_club",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767866991783,
+      "tag": "0001_add_material_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768684131253,
+      "tag": "0002_luxuriant_marrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768702570965,
+      "tag": "0003_modern_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1768735609883,
+      "tag": "0004_chilly_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768884832679,
+      "tag": "0005_premium_romulus",
+      "breakpoints": true
+    }
+  ]
+}
