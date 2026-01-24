@@ -57,6 +57,12 @@ export const tenderTaskStatusEnum = pgEnum("tender_task_status", [
   "deleted",
 ]);
 
+export const rfqStatusEnum = pgEnum("rfq_status", [
+  "active",
+  "sent",
+  "closed",
+]);
+
 export const mailStatusEnum = pgEnum("mail_status", [
   "draft",
   "sent",
@@ -593,6 +599,47 @@ export const tenderTasksSavy = pgTable("tender_tasks_savy", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const rfqs = pgTable("rfqs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  senderAddress: text("sender_address").notNull(),
+  items: jsonb("items").notNull(),
+  openDate: timestamp("open_date").notNull(),
+  closeDate: timestamp("close_date").notNull(),
+  status: rfqStatusEnum("status").notNull().default("active"),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const rfqsSavy = pgTable("rfqs_savy", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  senderAddress: text("sender_address").notNull(),
+  items: jsonb("items").notNull(),
+  openDate: timestamp("open_date").notNull(),
+  closeDate: timestamp("close_date").notNull(),
+  status: rfqStatusEnum("status").notNull().default("active"),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const rfqAssignments = pgTable("rfq_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  rfqId: uuid("rfq_id").notNull().references(() => rfqs.id, { onDelete: "cascade" }),
+  assigneeId: uuid("assignee_id").notNull().references(() => users.id),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const rfqAssignmentsSavy = pgTable("rfq_assignments_savy", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  rfqId: uuid("rfq_id").notNull().references(() => rfqsSavy.id, { onDelete: "cascade" }),
+  assigneeId: uuid("assignee_id").notNull().references(() => users.id),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 // Activity logs / Audit trail
 export const activityLogs = pgTable("activity_logs", {
   id: uuid("id").defaultRandom().primaryKey(),

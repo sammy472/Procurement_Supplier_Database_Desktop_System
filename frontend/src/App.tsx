@@ -18,6 +18,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Layout = lazy(() => import("./components/Layout"));
 const Tenders = lazy(() => import("./pages/Tenders"));
 const EmailProviderCallback = lazy(() => import("./pages/EmailProviderCallback"));
+const RFQs = lazy(() => import("./pages/RFQs"));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
@@ -62,6 +63,7 @@ function App() {
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="material-requests" element={<MaterialRequests />} />
               <Route path="tenders" element={<Tenders />} />
+              <Route path="rfqs" element={<RFQs />} />
               <Route path="profile" element={<Profile />} />
               <Route path="/provider/callback" element={<EmailProviderCallback />} />
             </Route>

@@ -64,8 +64,11 @@ export const providerMailsApi = {
     }
   ) => {
     try {
-      const res = await apiClient.post(`/email/providers/${provider}/messages`, data);
-      return res.data;
+      const res = await apiClient.post(`/email/providers/${provider}/messages`, data, {
+        responseType: "text",
+        transformResponse: [(raw) => raw],
+      });
+      return typeof res.data === "string" && res.data.trim().length > 0 ? res.data : { ok: true };
     } catch (error) {
       throw new Error(handleApiError(error));
     }

@@ -8,8 +8,33 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "electron": "electron .",
-    "package": "electron-packager . InternalSystem --platform=win32 --arch=x64 --out=release-builds --overwrite --icon=assets/favicon.ico"
+    "package": "electron-builder"
   },
+  "build": {
+    "appId": "com.onkgroupsavvy.system",
+    "productName": "OSS",
+
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis","portable"],
+      "icon": "assets/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+  ,
   "dependencies": {
     "@tanstack/react-query": "^5.14.2",
     "axios": "^1.13.2",

@@ -86,7 +86,7 @@ export default function Profile() {
   });
   const composeMutation = useMutation({
     mutationFn: async () => {
-      if (!composeData.subject || composeData.to.length === 0) {
+      if (!composeData.subject) {
         throw new Error("Subject and recipients are required");
       }
       const emails =

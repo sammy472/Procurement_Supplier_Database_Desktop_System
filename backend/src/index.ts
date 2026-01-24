@@ -14,6 +14,7 @@ import activityLogRoutes from "./routes/activityLogRoutes";
 import searchRoutes from "./routes/searchRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import tenderRoutes from "./routes/tenderRoutes";
+import rfqRoutes from "./routes/rfqRoutes";
 import mailRoutes from "./routes/mailRoutes";
 import providerMailRoutes from "./routes/providerMailRoutes";
 import { db } from "./db";
@@ -88,6 +89,7 @@ app.use("/api/activity-logs", activityLogRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/tenders", tenderRoutes);
+app.use("/api/rfqs", rfqRoutes);
 app.use("/api/mails", mailRoutes);
 app.use("/api/email/providers", providerMailRoutes);
 

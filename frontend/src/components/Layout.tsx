@@ -20,6 +20,7 @@ import {
   MdNightlightRound,
   MdNotifications,
   MdAssignment,
+  MdRequestQuote,
   MdRefresh,
   MdMenu,
   MdClose,
@@ -69,6 +70,7 @@ export default function Layout() {
     { name: "Purchase Orders", path: "/purchase-orders", icon: MdShoppingCart },
     { name: "Material Requests", path: "/material-requests", icon: MdNotes },
     { name: "Tenders", path: "/tenders", icon: MdAssignment },
+    { name: "RFQs", path: "/rfqs", icon: MdRequestQuote },
   ];
 
   const isActive = (path: string) => location.pathname === path;
