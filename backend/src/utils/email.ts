@@ -60,6 +60,7 @@ export const sendEmail = async (options: EmailOptions) => {
     });
     return;
   }
+  throw new Error("Email sending not configured");
 };
 
 function parseEmail(from?: string): string | null {
@@ -193,11 +194,11 @@ export function buildBrandedEmail(params: {
 
   const itemsHtml =
     params.items && params.items.length
-      ? `<ul style="padding-left:16px;margin:8px 0;">
+      ? `<ul style="padding-left:16px;margin:8px 0;color:#0f172a;">
   ${params.items
     .map(
       (it) =>
-        `<li style="margin:4px 0;">
+        `<li style="margin:4px 0;color:#0f172a;">
           ${it.label ? `<strong>${it.label}:</strong> ` : ""}${it.value}
         </li>`
     )
@@ -207,7 +208,7 @@ export function buildBrandedEmail(params: {
 
   const paragraphsHtml = params.paragraphs
     .map(
-      (p) => `<p style="margin:8px 0;color:#111827;">${p}</p>`
+      (p) => `<p style="margin:8px 0;color:#0f172a;">${p}</p>`
     )
     .join("");
 
@@ -219,12 +220,12 @@ export function buildBrandedEmail(params: {
 <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f9fafb;padding:24px;">
   <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
     <div style="padding:16px 20px;background:#0f172a;color:#ffffff;font-weight:600;">${brandName}</div>
-    <div style="padding:20px;">
-      <h1 style="margin:0 0 8px 0;font-size:18px;color:#111827;">${params.title}</h1>
-      <p style="margin:0 0 12px 0;color:#111827;">${params.greeting}</p>
+    <div style="padding:20px;color:#0f172a;">
+      <h1 style="margin:0 0 8px 0;font-size:18px;color:#0f172a;">${params.title}</h1>
+      <p style="margin:0 0 12px 0;color:#0f172a;">${params.greeting}</p>
       ${paragraphsHtml}
       ${itemsHtml}
-      <div style="margin-top:16px;color:#111827;">
+      <div style="margin-top:16px;color:#0f172a;">
         <p style="margin:8px 0;">Warm regards,</p>
         ${
           params.senderName

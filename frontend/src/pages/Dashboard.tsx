@@ -101,6 +101,167 @@ export default function Dashboard() {
         })}
       </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="card">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">RFQs</h2>
+            <MdDescription className="w-7 h-7 text-primary-600" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.rfqs?.total || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Active</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.rfqs?.active || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Sent</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.rfqs?.sent || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Closed</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.rfqs?.closed || 0}</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            {stats?.rfqTrend?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={stats.rfqTrend}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDark ? "#3f51b5" : "#e5e7eb"}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke={isDark ? "#9ca3af" : "#6b7280"}
+                    style={{ fontSize: "12px" }}
+                  />
+                  <YAxis
+                    stroke={isDark ? "#9ca3af" : "#6b7280"}
+                    style={{ fontSize: "12px" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#132f4c" : "#ffffff",
+                      border: `1px solid ${isDark ? "#3f51b5" : "#e5e7eb"}`,
+                      borderRadius: "8px",
+                      color: isDark ? "#e5e7eb" : "#1f2937",
+                    }}
+                    cursor={{ fill: isDark ? "#3f51b5/20" : "#3b82f6/10" }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      paddingTop: "10px",
+                      color: isDark ? "#d1d5db" : "#374151",
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="#22d3ee"
+                    radius={[8, 8, 0, 0]}
+                    animationDuration={800}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <MdShowChart className="w-10 h-10 mx-auto mb-2 text-primary-600" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  No RFQ data available yet
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tenders</h2>
+            <MdEmojiEvents className="w-7 h-7 text-yellow-500" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.tenders?.total || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Draft</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.tenders?.draft || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Active</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.tenders?.active || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Closed</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.tenders?.closed || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Cancelled</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.stats?.tenders?.cancelled || 0}</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            {stats?.tenderTrend?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={stats.tenderTrend}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDark ? "#3f51b5" : "#e5e7eb"}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke={isDark ? "#9ca3af" : "#6b7280"}
+                    style={{ fontSize: "12px" }}
+                  />
+                  <YAxis
+                    stroke={isDark ? "#9ca3af" : "#6b7280"}
+                    style={{ fontSize: "12px" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#132f4c" : "#ffffff",
+                      border: `1px solid ${isDark ? "#3f51b5" : "#e5e7eb"}`,
+                      borderRadius: "8px",
+                      color: isDark ? "#e5e7eb" : "#1f2937",
+                    }}
+                    cursor={{ fill: isDark ? "#3f51b5/20" : "#3b82f6/10" }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      paddingTop: "10px",
+                      color: isDark ? "#d1d5db" : "#374151",
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="#f472b6"
+                    radius={[8, 8, 0, 0]}
+                    animationDuration={800}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <MdShowChart className="w-10 h-10 mx-auto mb-2 text-primary-600" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  No tender data available yet
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Charts & Data */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Top Suppliers */}

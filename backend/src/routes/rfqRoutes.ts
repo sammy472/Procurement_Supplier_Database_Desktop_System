@@ -14,5 +14,6 @@ router.get("/:id", authenticate, rfqController.getRfq);
 router.post("/", authenticate, authorize("admin", "procurement_officer"), rfqController.createRfq);
 router.patch("/:id", authenticate, authorize("admin", "procurement_officer"), rfqController.updateRfq);
 router.patch("/:id/resolved", authenticate, authorize("admin", "procurement_officer"), rfqController.toggleResolved);
+router.delete("/:id", authenticate, authorize("admin", "procurement_officer"), rfqController.deleteRfq);
 
 export default router;

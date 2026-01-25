@@ -18,6 +18,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
     const quotationsTable = getTable("quotations", company);
     const materialRequestsTable = getTable("materialRequests", company);
     const purchaseOrdersTable = getTable("purchaseOrders", company);
+    const rfqsTable = getTable("rfqs", company);
+    const tendersTable = getTable("tenders", company);
 
     // Total suppliers
     const totalSuppliers = (await db
@@ -38,6 +40,51 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       .where(
         sql`${materialRequestsTable.status} IN ('pending', 'approved')`
       )) as CountRow[];
+
+    // RFQs stats
+    const totalRFQs = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(rfqsTable)) as CountRow[];
+
+    const rfqsActive = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(rfqsTable)
+      .where(eq(rfqsTable.status, "active" as any))) as CountRow[];
+
+    const rfqsSent = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(rfqsTable)
+      .where(eq(rfqsTable.status, "sent" as any))) as CountRow[];
+
+    const rfqsClosed = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(rfqsTable)
+      .where(eq(rfqsTable.status, "closed" as any))) as CountRow[];
+
+    // Tenders stats
+    const totalTenders = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tendersTable)) as CountRow[];
+
+    const tendersDraft = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tendersTable)
+      .where(eq(tendersTable.status, "draft" as any))) as CountRow[];
+
+    const tendersActive = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tendersTable)
+      .where(eq(tendersTable.status, "active" as any))) as CountRow[];
+
+    const tendersClosed = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tendersTable)
+      .where(eq(tendersTable.status, "closed" as any))) as CountRow[];
+
+    const tendersCancelled = (await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tendersTable)
+      .where(eq(tendersTable.status, "cancelled" as any))) as CountRow[];
 
     // Open purchase orders (draft, sent, delivered)
     const openPOs = (await db
@@ -86,12 +133,53 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       count: number;
     }[];
 
+    // RFQ trend (last 6 months)
+    const rfqTrend = (await db
+      .select({
+        month: sql<string>`to_char(${rfqsTable.createdAt}, 'YYYY-MM')`,
+        count: sql<number>`count(*)`,
+      })
+      .from(rfqsTable)
+      .where(gte(rfqsTable.createdAt, sixMonthsAgo))
+      .groupBy(sql`to_char(${rfqsTable.createdAt}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${rfqsTable.createdAt}, 'YYYY-MM')`)) as {
+      month: string;
+      count: number;
+    }[];
+
+    // Tender trend (last 6 months)
+    const tenderTrend = (await db
+      .select({
+        month: sql<string>`to_char(${tendersTable.createdAt}, 'YYYY-MM')`,
+        count: sql<number>`count(*)`,
+      })
+      .from(tendersTable)
+      .where(gte(tendersTable.createdAt, sixMonthsAgo))
+      .groupBy(sql`to_char(${tendersTable.createdAt}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${tendersTable.createdAt}, 'YYYY-MM')`)) as {
+      month: string;
+      count: number;
+    }[];
+
     res.json({
       stats: {
         totalSuppliers: parseInt(totalSuppliers[0]?.count?.toString() || "0"),
         quotationsThisMonth: parseInt(quotationsThisMonth[0]?.count?.toString() || "0"),
         activeRequests: parseInt(activeRequests[0]?.count?.toString() || "0"),
         openPOs: parseInt(openPOs[0]?.count?.toString() || "0"),
+        rfqs: {
+          total: parseInt(totalRFQs[0]?.count?.toString() || "0"),
+          active: parseInt(rfqsActive[0]?.count?.toString() || "0"),
+          sent: parseInt(rfqsSent[0]?.count?.toString() || "0"),
+          closed: parseInt(rfqsClosed[0]?.count?.toString() || "0"),
+        },
+        tenders: {
+          total: parseInt(totalTenders[0]?.count?.toString() || "0"),
+          draft: parseInt(tendersDraft[0]?.count?.toString() || "0"),
+          active: parseInt(tendersActive[0]?.count?.toString() || "0"),
+          closed: parseInt(tendersClosed[0]?.count?.toString() || "0"),
+          cancelled: parseInt(tendersCancelled[0]?.count?.toString() || "0"),
+        },
       },
       topSuppliers: topSuppliers.map((ts) => {
         const supplier = supplierDetails.find((s) => s.id === ts.supplierId);
@@ -103,6 +191,14 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       quotationTrend: quotationTrend.map((qt) => ({
         month: qt.month,
         count: parseInt(qt.count?.toString() || "0"),
+      })),
+      rfqTrend: rfqTrend.map((rt) => ({
+        month: rt.month,
+        count: parseInt(rt.count?.toString() || "0"),
+      })),
+      tenderTrend: tenderTrend.map((tt) => ({
+        month: tt.month,
+        count: parseInt(tt.count?.toString() || "0"),
       })),
     });
   } catch (error: any) {

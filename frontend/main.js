@@ -20,10 +20,6 @@ function createWindow() {
   const indexHtmlPath = path.join(__dirname, "dist", "index.html");
   win.loadURL(pathToFileURL(indexHtmlPath).toString());
 
-  win.webContents.on("did-finish-load", () => {
-    win.webContents.executeJavaScript('document.body.style.background="red"');
-  });
-
   // DevTools for debugging (remove in production if desired)
   win.webContents.openDevTools();
 }

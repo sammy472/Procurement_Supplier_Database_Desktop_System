@@ -245,6 +245,23 @@ export default function RFQs() {
                     >
                       Edit
                     </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const ok = window.confirm("Delete this RFQ?");
+                          if (!ok) return;
+                          await rfqsApi.delete(r.id);
+                          toast.success("RFQ deleted");
+                          queryClient.invalidateQueries({ queryKey: ["rfqs"] });
+                        } catch (error: any) {
+                          toast.error(error.message);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -549,6 +566,24 @@ export default function RFQs() {
                   className="btn btn-primary"
                 >
                   Edit
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!selectedRfq) return;
+                    const ok = window.confirm("Delete this RFQ?");
+                    if (!ok) return;
+                    try {
+                      await rfqsApi.delete(selectedRfq.id);
+                      toast.success("RFQ deleted");
+                      setIsViewOpen(false);
+                      queryClient.invalidateQueries({ queryKey: ["rfqs"] });
+                    } catch (error: any) {
+                      toast.error(error.message);
+                    }
+                  }}
+                  className="btn bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Delete
                 </button>
                 <button
                   onClick={() => setIsViewOpen(false)}

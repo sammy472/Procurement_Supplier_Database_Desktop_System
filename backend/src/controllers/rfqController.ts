@@ -212,30 +212,45 @@ export const createRfq = async (req: AuthRequest, res: Response) => {
       const { attachments, logoCid } = getBrandAssets();
       for (const u of users) {
         if (!u.email) continue;
-        const html = buildBrandedEmail({
-          title: "RFQ Assignment",
-          greeting: `Hello ${[u.firstName, u.lastName].filter(Boolean).join(" ") || "Member"},`,
-          paragraphs: [
-            "You have been assigned to work on a new RFQ.",
-            "Please log in to the system to view details.",
-          ],
-          items: [
-            { label: "Subject", value: subject },
-            { label: "Sender Address", value: senderAddress },
-            { label: "Open Date", value: new Date(openDate).toDateString() },
-            { label: "Closing Date", value: new Date(closeDate).toDateString() },
-          ],
-          logoCid,
-          senderName: creatorName,
-          senderPosition,
-        });
-        await sendEmail({
-          to: u.email,
-          subject: "New RFQ Assigned",
-          html,
-          attachments,
-          from: creator && creator.email ? `${creatorName} <${creator.email}>` : undefined,
-        });
+        try {
+          const itemSummary = (items || []).slice(0, 5).map((it: any, idx: number) => {
+            const pn = it.partNumber ? `Part: ${it.partNumber}` : "";
+            const sn = it.serialNumber ? `Serial: ${it.serialNumber}` : "";
+            const meta = [pn, sn].filter(Boolean).join(" | ");
+            const qty = typeof it.quantity === "number" ? `Qty: ${it.quantity}` : "";
+            const info = [it.description || "", qty, meta].filter(Boolean).join(" — ");
+            return { label: `Item ${idx + 1}`, value: info };
+          });
+          const html = buildBrandedEmail({
+            title: "RFQ Assigned",
+            greeting: `Hello ${[u.firstName, u.lastName].filter(Boolean).join(" ") || "Member"},`,
+            paragraphs: [
+              "You have been assigned to a new Request for Quotation (RFQ).",
+              "Review the RFQ details below, then proceed in the system to work on it.",
+            ],
+            items: [
+              { label: "Subject", value: subject },
+              { label: "Sender Address", value: senderAddress },
+              { label: "Open Date", value: new Date(openDate).toDateString() },
+              { label: "Closing Date", value: new Date(closeDate).toDateString() },
+              { label: "Status", value: "active" },
+              { label: "Items Count", value: String((items || []).length) },
+              ...itemSummary,
+            ],
+            logoCid,
+            senderName: creatorName,
+            senderPosition,
+          });
+          await sendEmail({
+            to: u.email,
+            subject: "New RFQ Assigned",
+            html,
+            attachments,
+            from: creator && creator.email ? `${creatorName} <${creator.email}>` : undefined,
+          });
+        } catch (e) {
+          console.error("RFQ assignment email failed", u.email, e);
+        }
       }
     }
 
@@ -301,6 +316,72 @@ export const updateRfq = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    let finalAssigneeIds: string[] = [];
+    if (Array.isArray(assigneeIds)) {
+      finalAssigneeIds = assigneeIds.filter((x: string) => !!x);
+    } else {
+      const rows = await db.select().from(assignmentsTable).where(eq(assignmentsTable.rfqId, id));
+      finalAssigneeIds = rows.map((r: any) => r.assigneeId);
+    }
+    if (finalAssigneeIds.length > 0) {
+      const users = await db.select().from(schema.users).where(inArray(schema.users.id, finalAssigneeIds));
+      const [creator] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+      const creatorName = creator ? `${creator.firstName} ${creator.lastName}`.trim() : "RFQ Updater";
+      const senderPosition = creator ? creator.role : undefined;
+      const { attachments, logoCid } = getBrandAssets();
+      const changedFields: string[] = [];
+      if (previous.subject !== rfq.subject) changedFields.push("subject");
+      if (previous.senderAddress !== rfq.senderAddress) changedFields.push("sender address");
+      if (String(previous.openDate) !== String(rfq.openDate)) changedFields.push("opening date");
+      if (String(previous.closeDate) !== String(rfq.closeDate)) changedFields.push("closing date");
+      if (previous.status !== rfq.status) changedFields.push("status");
+      const prevItemsCount = Array.isArray(previous.items) ? previous.items.length : 0;
+      const newItemsCount = Array.isArray(rfq.items) ? rfq.items.length : 0;
+      const itemsChanged = String(previous.items) !== String(rfq.items);
+      for (const u of users) {
+        if (!u.email) continue;
+        try {
+          const html = buildBrandedEmail({
+            title: "RFQ Updated",
+            greeting: `Hello ${[u.firstName, u.lastName].filter(Boolean).join(" ") || "Member"},`,
+            paragraphs: [
+              "An RFQ you are assigned to has been updated with new details.",
+              "Review the updated information below, then proceed in the system to take action.",
+            ],
+            items: [
+              { label: "Subject", value: rfq.subject },
+              { label: "Sender Address", value: rfq.senderAddress },
+              { label: "Open Date", value: new Date(rfq.openDate as any).toDateString() },
+              { label: "Closing Date", value: new Date(rfq.closeDate as any).toDateString() },
+              { label: "Status", value: rfq.status as any },
+              { label: "Updated Fields", value: changedFields.length ? changedFields.join(", ") : "None" },
+              { label: "Items Count", value: `${newItemsCount}` },
+              { label: "Items Changed", value: itemsChanged ? `Yes (${prevItemsCount} → ${newItemsCount})` : "No" },
+              ...((Array.isArray(rfq.items) ? rfq.items.slice(0, 5) : []).map((it: any, idx: number) => {
+                const pn = it.partNumber ? `Part: ${it.partNumber}` : "";
+                const sn = it.serialNumber ? `Serial: ${it.serialNumber}` : "";
+                const qty = typeof it.quantity === "number" ? `Qty: ${it.quantity}` : "";
+                const info = [it.description || "", qty, [pn, sn].filter(Boolean).join(" | ")].filter(Boolean).join(" — ");
+                return { label: `Item ${idx + 1}`, value: info };
+              })),
+            ],
+            logoCid,
+            senderName: creatorName,
+            senderPosition,
+          });
+          await sendEmail({
+            to: u.email,
+            subject: "RFQ Updated",
+            html,
+            attachments,
+            from: creator && creator.email ? `${creatorName} <${creator.email}>` : undefined,
+          });
+        } catch (e) {
+          console.error("RFQ update email failed", u.email, e);
+        }
+      }
+    }
+
     await logActivity({
       userId,
       action: "update",
@@ -329,16 +410,41 @@ export const toggleResolved = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "RFQ not found" });
     }
     const current = existingRows[0];
-    let nextStatus = current.status as any;
-    if (resolved === true && current.status === "active") {
-      nextStatus = "sent";
-    }
+    const nextStatus = resolved === true ? ("sent" as any) : ("active" as any);
     const [rfq] = await db
       .update(rfqsTable)
       .set({ status: nextStatus, updatedAt: new Date() })
       .where(eq(rfqsTable.id, id))
       .returning();
     res.json({ rfq });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteRfq = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const company = req.user?.company;
+    const userId = req.user!.id;
+    const rfqsTable = getTable("rfqs", company);
+    const rows = await db.select().from(rfqsTable).where(eq(rfqsTable.id, id)).limit(1);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "RFQ not found" });
+    }
+    const previous = rows[0];
+    const deletedRows = await db.delete(rfqsTable).where(eq(rfqsTable.id, id)).returning() as RfqRow[];
+    const deleted = deletedRows[0];
+    await logActivity({
+      userId,
+      action: "delete",
+      entityType: "rfq",
+      entityId: id,
+      description: "Deleted RFQ",
+      previousValue: previous as any,
+      req: req as any,
+    });
+    res.json({ rfq: deleted });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

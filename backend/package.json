@@ -9,6 +9,7 @@
     "start": "node src/index.js",
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
+    "db:push": "npx drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
@@ -49,7 +50,7 @@
     "@types/pdfkit": "^0.17.4",
     "@types/pg": "^8.16.0",
     "@types/uuid": "^9.0.7",
-    "drizzle-kit": "^0.18.1",
+    "drizzle-kit": "^0.31.8",
     "nodemon": "^3.1.11",
     "tsx": "^4.21.0",
     "typescript": "^5.3.3"

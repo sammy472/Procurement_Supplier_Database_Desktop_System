@@ -80,6 +80,13 @@ export default function Profile() {
       setNextPageToken(null);
     }
   }, [mailsResp, mailProvider]);
+  useEffect(() => {
+    setPageIndex(0);
+    setGmailTokens([]);
+    setMsSkip(0);
+    setNextPageToken(null);
+    setMsHasNext(false);
+  }, [mailFolder, mailProvider]);
   const { data: linked } = useQuery({
     queryKey: ["linked-email-accounts"],
     queryFn: () => providerMailsApi.getLinkedAccounts(),

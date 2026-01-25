@@ -78,4 +78,11 @@ export const rfqsApi = {
       throw new Error(handleApiError(error));
     }
   },
+  delete: async (id: string): Promise<void> => {
+    try {
+      await apiClient.delete(`/rfqs/${id}`);
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  },
 };
