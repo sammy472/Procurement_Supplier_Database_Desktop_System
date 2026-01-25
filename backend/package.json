@@ -2,11 +2,11 @@
   "name": "procurement-backend",
   "version": "1.0.0",
   "description": "Backend API for Procurement & Supplier Database System",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "npx tsc",
-    "start": "node src/index.js",
+    "start": "node dist/index.js",
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
     "db:push": "npx drizzle-kit push",
