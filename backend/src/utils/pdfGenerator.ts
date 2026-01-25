@@ -7,9 +7,8 @@ import formatNum from "format-num"
 const ToWordsConverter = new ToWords({localeCode: 'en-US',});
 import { fileURLToPath } from "url";
 
-// __dirname is already available in CommonJS
-const baseDir = path.resolve(__dirname, "utils/assets");
-
+// Render runs from project root
+const baseDir = path.join(process.cwd(),"dist","utils","assets");
 
 //Help function to get major currency unit
 type CurrencyCode = "GHC" | "USD" | "EUR" | "GBP" | "CAD" | "NGN";
@@ -332,10 +331,12 @@ function resolveAssetPath(
     ];
 
     for (const p of candidates) {
+      console.log(`Checking path: ${p}`);
       if (fs.existsSync(p)) return p;
     }
   }
 
+  console.log(`Default path: ${defaults[asset]}`);
   return defaults[asset];
 }
 
