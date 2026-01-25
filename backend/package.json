@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npx tsc",
+    "build": "npx tsc && cp -r src/utils/assets dist/utils/assets",
     "start": "node dist/index.js",
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
