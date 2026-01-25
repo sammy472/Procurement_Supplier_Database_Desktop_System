@@ -4,8 +4,11 @@ import path from "path";
 import fs from "fs";
 import { ToWords } from 'to-words';
 import formatNum from "format-num"
-const ToWordsConverter = new ToWords({localeCode: 'en-US',})
+const ToWordsConverter = new ToWords({localeCode: 'en-US',});
+import { fileURLToPath } from "url";
 
+// __dirname is already available in CommonJS
+const baseDir = path.resolve(__dirname, "utils/assets");
 
 
 //Help function to get major currency unit
@@ -50,7 +53,6 @@ function getMinorCurrencyUnit(
   // Treat absolute value 1 as singular, everything else as plural
   return Math.abs(amount) === 1 ? unit.singular : unit.plural;
 }
-
 
 
 interface LineItem {
@@ -315,14 +317,12 @@ function resolveAssetPath(
   asset: "logo" | "banner" | "stamp",
   company?: string | null
 ) {
-  const baseDir = path.resolve(
-    "C:\\Users\\PC\\OneDrive\\Desktop\\ONK GROUP PROJECTS\\Procurement_Supplier_Database_Desktop_System\\backend\\src\\utils\\assets"
-  );
   const defaults: Record<string, string> = {
     logo: path.join(baseDir, "logo.png"),
     banner: path.join(baseDir, "banner.jpg"),
     stamp: path.join(baseDir, "stamp.png"),
   };
+
   if (company) {
     const candidates = [
       path.join(baseDir, `${company.toLowerCase()}-${asset}.png`),
@@ -330,10 +330,12 @@ function resolveAssetPath(
       path.join(baseDir, `${company.toLowerCase()}_${asset}.png`),
       path.join(baseDir, `${company.toLowerCase()}_${asset}.jpg`),
     ];
+
     for (const p of candidates) {
       if (fs.existsSync(p)) return p;
     }
   }
+
   return defaults[asset];
 }
 
