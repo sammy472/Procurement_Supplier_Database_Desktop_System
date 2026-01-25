@@ -25,7 +25,6 @@ export function getMajorCurrencyUnit(currency: CurrencyCode): string {
   return currencyMajorUnits[currency];
 }
 
-
 //Help function to get minor currency unit
 type CurrencyCodeMinorUnit = "GHC" | "USD" | "EUR" | "GBP" | "CAD" | "NGN";
 
