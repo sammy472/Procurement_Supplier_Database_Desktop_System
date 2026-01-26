@@ -195,8 +195,8 @@ async function refreshMicrosoftToken(acc: any, company: string): Promise<any> {
 
 async function getAppOnlyToken(company?: string): Promise<string> {
   const tenant = pickEnv("MS_TENANT_ID", company) || "organizations";
-  const clientId = pickEnv("MS_APP_CLIENT_ID", company) || (process.env.MS_CLIENT_ID || "");
-  const clientSecret = pickEnv("MS_APP_CLIENT_SECRET", company) || (process.env.MS_CLIENT_SECRET || "");
+  const clientId = pickEnv("MS_APP_CLIENT_ID", company);
+  const clientSecret = pickEnv("MS_APP_CLIENT_SECRET", company);
   const url = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
     client_id: clientId,
