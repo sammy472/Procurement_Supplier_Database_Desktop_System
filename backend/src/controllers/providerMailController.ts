@@ -186,10 +186,10 @@ async function getAccount(userId: string, provider: "google" | "microsoft", comp
   return acc;
 }
 
-async function refreshAccessTokenIfNeeded(acc: any, company?: string): Promise<any> {
+async function refreshAccessTokenIfNeeded(acc: any, company?: string, force: boolean = false): Promise<any> {
   const now = Date.now();
   const exp = acc.expiresAt ? new Date(acc.expiresAt).getTime() : 0;
-  const shouldRefresh = !exp || exp - now < 60000;
+  const shouldRefresh = force || !exp || exp - now < 60000;
   if (!shouldRefresh || !acc.refreshToken) return acc;
   
   const emailAccountsTable = getTable("emailAccounts", company);
@@ -401,15 +401,27 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         },
         saveToSentItems: "true",
       };
-      const data = await fetchJson<any>("https://graph.microsoft.com/v1.0/me/sendMail", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${acc.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      return res.status(201).json({ result: data });
+      const attempt = async (token: string) =>
+        await fetchJson<any>("https://graph.microsoft.com/v1.0/me/sendMail", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+      try {
+        const data = await attempt(acc.accessToken);
+        return res.status(201).json({ result: data });
+      } catch (err: any) {
+        const msg = String(err?.message || "");
+        if (msg.includes("InvalidAuthenticationToken") || msg.includes("401") || msg.includes("invalid_grant")) {
+          const fresh = await refreshAccessTokenIfNeeded(acc, req.user?.company, true);
+          const data = await attempt(fresh.accessToken);
+          return res.status(201).json({ result: data });
+        }
+        throw err;
+      }
     }
     return res.status(400).json({ error: "Unsupported provider" });
   } catch (error: any) {

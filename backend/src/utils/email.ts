@@ -53,24 +53,66 @@ export const sendEmail = async (options: EmailOptions) => {
     message.attachments = graphAttachments;
   }
 
-  const delegatedToken = parsedFromEmail && company ? await getDelegatedTokenForEmail(parsedFromEmail, company).catch(() => null) : null;
+  const delegatedTokenGetter = async () =>
+    parsedFromEmail && company ? await getDelegatedTokenForEmail(parsedFromEmail, company).catch(() => null) : null;
+  const appTokenGetter = async () => await getAppOnlyToken(company).catch(() => null);
+
+  const isExpiredError = (err: any) => {
+    const msg = String(err?.message || err || "");
+    return msg.includes("InvalidAuthenticationToken") || msg.toLowerCase().includes("token is expired");
+  };
+
+  const delegatedToken = await delegatedTokenGetter();
   if (delegatedToken) {
-    await graphSend("https://graph.microsoft.com/v1.0/me/sendMail", delegatedToken, {
-      message,
-      saveToSentItems: "true",
-    });
-    return;
+    try {
+      await graphSend("https://graph.microsoft.com/v1.0/me/sendMail", delegatedToken, {
+        message,
+        saveToSentItems: "true",
+      });
+      return;
+    } catch (err) {
+      if (isExpiredError(err)) {
+        const retryToken = await delegatedTokenGetter();
+        if (retryToken) {
+          try {
+            await graphSend("https://graph.microsoft.com/v1.0/me/sendMail", retryToken, {
+              message,
+              saveToSentItems: "true",
+            });
+            return;
+          } catch (err2) {
+            // fall through to app-only
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
   }
 
-  const appToken = await getAppOnlyToken(company).catch(() => null);
+  const appToken = await appTokenGetter();
   const systemSender = getSystemSenderEmail(company) || parsedFromEmail || "";
   if (appToken && systemSender) {
     const endpoint = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(systemSender)}/sendMail`;
-    await graphSend(endpoint, appToken, {
-      message,
-      saveToSentItems: "true",
-    });
-    return;
+    try {
+      await graphSend(endpoint, appToken, {
+        message,
+        saveToSentItems: "true",
+      });
+      return;
+    } catch (err) {
+      if (isExpiredError(err)) {
+        const retryToken = await appTokenGetter();
+        if (retryToken) {
+          await graphSend(endpoint, retryToken, {
+            message,
+            saveToSentItems: "true",
+          });
+          return;
+        }
+      }
+      throw err;
+    }
   }
   throw new Error("Email sending not configured");
 };
@@ -126,8 +168,8 @@ async function refreshMicrosoftToken(acc: any, company: string): Promise<any> {
   const exp = acc.expiresAt ? new Date(acc.expiresAt).getTime() : 0;
   if (exp > now + 60_000) return acc;
   const body = new URLSearchParams({
-    client_id: process.env.MS_CLIENT_ID || "",
-    client_secret: process.env.MS_CLIENT_SECRET || "",
+    client_id: pickEnv("MS_CLIENT_ID", company) || "",
+    client_secret: pickEnv("MS_CLIENT_SECRET", company) || "",
     grant_type: "refresh_token",
     refresh_token: acc.refreshToken || "",
   });
