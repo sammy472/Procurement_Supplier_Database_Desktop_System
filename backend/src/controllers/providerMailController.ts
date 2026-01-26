@@ -30,6 +30,17 @@ function getEnv(name: string, optional = false) {
   return v!;
 }
 
+function pickEnv(name: string, company?: string, optional = false) {
+  const c = String(company || "").toUpperCase().trim();
+  const suffix = c === "ANT_SAVY" ? "_ANT_SAVY" : c === "ONK_GROUP" ? "_ONK_GROUP" : "";
+  const specific = process.env[`${name}${suffix}`];
+  const value = (specific && specific.length ? specific : process.env[name]) || "";
+  if (!value && !optional) {
+    throw new Error(`Missing env: ${name}${suffix || ""}`);
+  }
+  return value;
+}
+
 interface OAuthTokenResponse {
   access_token: string;
   refresh_token?: string | null;
@@ -77,9 +88,9 @@ export const getAuthUrl = async (req: AuthRequest, res: Response) => {
     }
     if (provider === "microsoft") {
       const url = new URL(MS_AUTH_URL);
-      url.searchParams.set("client_id", getEnv("MS_CLIENT_ID"));
+      url.searchParams.set("client_id", pickEnv("MS_CLIENT_ID", req.user?.company));
       url.searchParams.set("response_type", "code");
-      url.searchParams.set("redirect_uri", getEnv("MS_REDIRECT_URL"));
+      url.searchParams.set("redirect_uri", pickEnv("MS_REDIRECT_URL", req.user?.company));
       url.searchParams.set("response_mode", "query");
       url.searchParams.set("scope", "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send");
       url.searchParams.set("state", state);
@@ -133,9 +144,9 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
     if (provider === "microsoft") {
       const body = new URLSearchParams({
         code: code as string,
-        client_id: getEnv("MS_CLIENT_ID"),
-        client_secret: getEnv("MS_CLIENT_SECRET"),
-        redirect_uri: getEnv("MS_REDIRECT_URL"),
+        client_id: pickEnv("MS_CLIENT_ID", company),
+        client_secret: pickEnv("MS_CLIENT_SECRET", company),
+        redirect_uri: pickEnv("MS_REDIRECT_URL", company),
         grant_type: "authorization_code",
       });
       const token = await fetchJson<OAuthTokenResponse>(MS_TOKEN_URL, {
@@ -209,8 +220,8 @@ async function refreshAccessTokenIfNeeded(acc: any, company?: string): Promise<a
   }
   if (acc.provider === "microsoft") {
     const body = new URLSearchParams({
-      client_id: getEnv("MS_CLIENT_ID"),
-      client_secret: getEnv("MS_CLIENT_SECRET"),
+      client_id: pickEnv("MS_CLIENT_ID", company),
+      client_secret: pickEnv("MS_CLIENT_SECRET", company),
       grant_type: "refresh_token",
       refresh_token: acc.refreshToken,
     });
