@@ -87,10 +87,21 @@ export const getAuthUrl = async (req: AuthRequest, res: Response) => {
       return res.json({ url: url.toString() });
     }
     if (provider === "microsoft") {
+      const clientId = pickEnv("MS_CLIENT_ID", req.user?.company, true);
+      const redirectUri = pickEnv("MS_REDIRECT_URL", req.user?.company, true);
+      if (!clientId || !redirectUri) {
+        return res.status(400).json({
+          error: "Missing environment configuration",
+          missing: [
+            !clientId ? `MS_CLIENT_ID${req.user?.company ? `_${req.user?.company}` : ""}` : null,
+            !redirectUri ? `MS_REDIRECT_URL${req.user?.company ? `_${req.user?.company}` : ""}` : null,
+          ].filter(Boolean),
+        });
+      }
       const url = new URL(MS_AUTH_URL);
-      url.searchParams.set("client_id", pickEnv("MS_CLIENT_ID", req.user?.company));
+      url.searchParams.set("client_id", clientId);
       url.searchParams.set("response_type", "code");
-      url.searchParams.set("redirect_uri", pickEnv("MS_REDIRECT_URL", req.user?.company));
+      url.searchParams.set("redirect_uri", redirectUri);
       url.searchParams.set("response_mode", "query");
       url.searchParams.set("scope", "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send");
       url.searchParams.set("state", state);
@@ -142,11 +153,24 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
     }
 
     if (provider === "microsoft") {
+      const clientId = pickEnv("MS_CLIENT_ID", company, true);
+      const clientSecret = pickEnv("MS_CLIENT_SECRET", company, true);
+      const redirectUri = pickEnv("MS_REDIRECT_URL", company, true);
+      if (!clientId || !clientSecret || !redirectUri) {
+        return res.status(400).json({
+          error: "Missing environment configuration",
+          missing: [
+            !clientId ? `MS_CLIENT_ID${company ? `_${company}` : ""}` : null,
+            !clientSecret ? `MS_CLIENT_SECRET${company ? `_${company}` : ""}` : null,
+            !redirectUri ? `MS_REDIRECT_URL${company ? `_${company}` : ""}` : null,
+          ].filter(Boolean),
+        });
+      }
       const body = new URLSearchParams({
         code: code as string,
-        client_id: pickEnv("MS_CLIENT_ID", company),
-        client_secret: pickEnv("MS_CLIENT_SECRET", company),
-        redirect_uri: pickEnv("MS_REDIRECT_URL", company),
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
         grant_type: "authorization_code",
       });
       const token = await fetchJson<OAuthTokenResponse>(MS_TOKEN_URL, {
@@ -219,9 +243,14 @@ async function refreshAccessTokenIfNeeded(acc: any, company?: string, force: boo
     return updated;
   }
   if (acc.provider === "microsoft") {
+    const clientId = pickEnv("MS_CLIENT_ID", company, true);
+    const clientSecret = pickEnv("MS_CLIENT_SECRET", company, true);
+    if (!clientId || !clientSecret) {
+      return acc;
+    }
     const body = new URLSearchParams({
-      client_id: pickEnv("MS_CLIENT_ID", company),
-      client_secret: pickEnv("MS_CLIENT_SECRET", company),
+      client_id: clientId,
+      client_secret: clientSecret,
       grant_type: "refresh_token",
       refresh_token: acc.refreshToken,
     });

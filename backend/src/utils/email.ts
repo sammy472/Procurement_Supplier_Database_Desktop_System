@@ -114,7 +114,21 @@ export const sendEmail = async (options: EmailOptions) => {
       throw err;
     }
   }
-  throw new Error("Email sending not configured");
+  {
+    const suffix = company ? `_${String(company).toUpperCase()}` : "";
+    const appId = pickEnv("MS_CLIENT_ID", company);
+    const appSecret = pickEnv("MS_CLIENT_SECRET", company);
+    const missing = [
+      !appId ? `MS_APP_CLIENT_ID${suffix}` : null,
+      !appSecret ? `MS_CLIENT_SECRET${suffix}` : null,
+      !systemSender ? "sender email (MS_SYSTEM_SENDER_EMAIL or from)" : null,
+    ].filter(Boolean);
+    const reason =
+      missing.length
+        ? `missing ${missing.join(", ")}`
+        : "no linked Microsoft account and no app-only configuration";
+    throw new Error(`Email sending not configured: ${reason}`);
+  }
 };
 
 function parseEmail(from?: string): string | null {
@@ -196,7 +210,7 @@ async function refreshMicrosoftToken(acc: any, company: string): Promise<any> {
 async function getAppOnlyToken(company?: string): Promise<string> {
   const tenant = pickEnv("MS_TENANT_ID", company) || "organizations";
   const clientId = pickEnv("MS_APP_CLIENT_ID", company);
-  const clientSecret = pickEnv("MS_APP_CLIENT_SECRET", company);
+  const clientSecret = pickEnv("MS_CLIENT_SECRET", company);
   const url = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
     client_id: clientId,
