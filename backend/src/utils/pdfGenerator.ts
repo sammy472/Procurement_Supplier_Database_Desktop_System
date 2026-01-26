@@ -779,9 +779,9 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     doc.registerFont('Times-Roman', 'Times-Roman');
     doc.registerFont('Times-Bold', 'Times-Bold');
 
-    const bannerPath = path.resolve("C:\\Users\\PC\\OneDrive\\Desktop\\ONK GROUP PROJECTS\\Procurement_Supplier_Database_Desktop_System\\backend\\src\\utils\\assets\\banner.jpg");
-    const stampPath = path.resolve("C:\\Users\\PC\\OneDrive\\Desktop\\ONK GROUP PROJECTS\\Procurement_Supplier_Database_Desktop_System\\backend\\src\\utils\\assets\\stamp.png");
-    const logoPath = path.resolve("C:\\Users\\PC\\OneDrive\\Desktop\\ONK GROUP PROJECTS\\Procurement_Supplier_Database_Desktop_System\\backend\\src\\utils\\assets\\logo.png");
+    const bannerPath = resolveAssetPath("banner");
+    const stampPath = resolveAssetPath("stamp"); 
+    const logoPath = resolveAssetPath("logo");
 
     let currentY = 0;
 

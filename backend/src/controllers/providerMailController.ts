@@ -44,7 +44,19 @@ async function fetchJson<T>(url: string, options: any): Promise<T> {
     const text = await res.text();
     throw new Error(`HTTP ${res.status}: ${text}`);
   }
-  return res.json() as Promise<T>;
+  const ct = res.headers.get("content-type") || "";
+  if (res.status === 202 || res.status === 204) {
+    return {} as T;
+  }
+  if (ct.includes("application/json")) {
+    return (await res.json()) as T;
+  }
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return {} as T;
+  }
 }
 
 export const getAuthUrl = async (req: AuthRequest, res: Response) => {
