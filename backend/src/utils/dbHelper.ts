@@ -33,7 +33,8 @@ export const getTable = (tableName: string, company?: string | null) => {
  * Helper to determine company from email domain
  */
 export const getCompanyFromEmail = (email: string): Company => {
-  if (email.toLowerCase().endsWith("@antsavy.co.uk")) {
+  const e = email.toLowerCase();
+  if (e.endsWith("@antsavy.co.uk") || e.endsWith("@antsavy.com")) {
     return "ANT_SAVY";
   }
   return "ONK_GROUP";

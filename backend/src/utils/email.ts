@@ -15,6 +15,18 @@ interface EmailOptions {
 const MS_AUTH_COMMON = "https://login.microsoftonline.com/common/oauth2/v2.0";
 const MS_TOKEN_URL = `${MS_AUTH_COMMON}/token`;
 
+function pickEnv(name: string, company?: string) {
+  const c = String(company || "").toUpperCase().trim();
+  const suffix = c === "ANT_SAVY" ? "_ANT_SAVY" : c === "ONK_GROUP" ? "_ONK_GROUP" : "";
+  const specific = process.env[`${name}${suffix}`];
+  return (specific && specific.length ? specific : process.env[name]) || "";
+}
+
+function getSystemSenderEmail(company?: string) {
+  const v = pickEnv("MS_SYSTEM_SENDER_EMAIL", company);
+  return v || "";
+}
+
 export const sendEmail = async (options: EmailOptions) => {
   const toList = Array.isArray(options.to) ? options.to : [options.to];
   const hasHtml = typeof options.html === "string" && options.html.length > 0;
@@ -50,8 +62,8 @@ export const sendEmail = async (options: EmailOptions) => {
     return;
   }
 
-  const appToken = await getAppOnlyToken().catch(() => null);
-  const systemSender = process.env.MS_SYSTEM_SENDER_EMAIL || "";
+  const appToken = await getAppOnlyToken(company).catch(() => null);
+  const systemSender = getSystemSenderEmail(company) || parsedFromEmail || "";
   if (appToken && systemSender) {
     const endpoint = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(systemSender)}/sendMail`;
     await graphSend(endpoint, appToken, {
@@ -139,10 +151,10 @@ async function refreshMicrosoftToken(acc: any, company: string): Promise<any> {
   return updated || acc;
 }
 
-async function getAppOnlyToken(): Promise<string> {
-  const tenant = process.env.MS_TENANT_ID || "";
-  const clientId = process.env.MS_APP_CLIENT_ID || "";
-  const clientSecret = process.env.MS_APP_CLIENT_SECRET || "";
+async function getAppOnlyToken(company?: string): Promise<string> {
+  const tenant = pickEnv("MS_TENANT_ID", company) || "organizations";
+  const clientId = pickEnv("MS_APP_CLIENT_ID", company) || (process.env.MS_CLIENT_ID || "");
+  const clientSecret = pickEnv("MS_APP_CLIENT_SECRET", company) || (process.env.MS_CLIENT_SECRET || "");
   const url = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
     client_id: clientId,

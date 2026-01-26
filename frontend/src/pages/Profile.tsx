@@ -87,7 +87,7 @@ export default function Profile() {
     setNextPageToken(null);
     setMsHasNext(false);
   }, [mailFolder, mailProvider]);
-  const { data: linked } = useQuery({
+  const { data: linked, isLoading: linkedLoading } = useQuery({
     queryKey: ["linked-email-accounts"],
     queryFn: () => providerMailsApi.getLinkedAccounts(),
   });
@@ -275,6 +275,7 @@ export default function Profile() {
   useEffect(() => {
     const exec = async () => {
       if (!profile) return;
+      if (linkedLoading || typeof linked === "undefined") return;
       const email = profile.email || "";
       const domain = email.split("@")[1]?.toLowerCase() || "";
       const domainIsGoogle = domain === "gmail.com";
@@ -301,7 +302,7 @@ export default function Profile() {
       }
     };
     exec();
-  }, [profile, linked, autoConnectAttempted]);
+  }, [profile, linked, linkedLoading, autoConnectAttempted]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
