@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "main": "main.js",
+  "author":"ONK-SAVVY",
+  "description":"ONK-SAVVY Procurement Supplier Database Desktop System",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -25,7 +27,8 @@
     ],
     "win": {
       "target": ["nsis"],
-      "icon": "assets/desktop-icon.png"
+      "icon": "assets/KO.ico",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
