@@ -12,7 +12,7 @@
   },
   "build": {
     "appId": "com.onkgroupsavvy.system",
-    "productName": "OSS",
+    "productName": "ONK-SAVVY",
 
     "directories": {
       "output": "release"
@@ -24,7 +24,7 @@
       "package.json"
     ],
     "win": {
-      "target": ["nsis","portable"],
+      "target": ["nsis"],
       "icon": "assets/desktop-icon.png"
     },
     "nsis": {
