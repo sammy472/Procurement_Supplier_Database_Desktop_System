@@ -21,7 +21,7 @@ function createWindow() {
   win.loadURL(pathToFileURL(indexHtmlPath).toString());
 
   // DevTools for debugging (remove in production if desired)
-  win.webContents.openDevTools();
+  //win.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);
