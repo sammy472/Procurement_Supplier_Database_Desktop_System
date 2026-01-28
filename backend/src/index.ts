@@ -111,6 +111,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 async function sendTenderTaskRemindersForWindow(minMs?: number, maxMs?: number) {
   try {
     const company = String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP";
+    console.log(`Sending tender task reminders for company: ${company}`);
     const available = await getAnyDelegatedSender(company);
     if (!available) {
       console.warn("No Microsoft delegated account linked for company; skipping task reminders.");

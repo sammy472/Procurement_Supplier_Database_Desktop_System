@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { authApi } from "../api/auth";
 import { toast } from "react-toastify";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,12 @@ import {
 } from "../utils/validation";
 import { providerMailsApi, Provider } from "../api/providerMails";
 import { isValidEmail } from "../utils/validation";
+
+declare global {
+  interface Window {
+    electron?: { openExternal: (url: string) => void };
+  }
+}
 
 export default function Profile() {
   const queryClient = useQueryClient();
@@ -57,6 +63,7 @@ export default function Profile() {
   const [msSkip, setMsSkip] = useState(0);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [msHasNext, setMsHasNext] = useState<boolean>(false);
+  const pollTimer = useRef<number | null>(null);
 
   const { data: mailsResp, refetch: refetchMails, isFetching: mailsLoading } = useQuery({
     queryKey: ["provider-mails", mailProvider, mailFolder, pageIndex, currentGmailToken, msSkip, pageLimit],
@@ -295,7 +302,42 @@ export default function Profile() {
         setAutoConnectAttempted(true);
         try {
           const url = await providerMailsApi.getAuthUrl(preferred);
-          window.location.href = url;
+          if (window.electron && typeof window.electron.openExternal === "function") {
+            window.electron.openExternal(url);
+            if (!pollTimer.current) {
+              let attempts = 0;
+              const maxAttempts = 60;
+              pollTimer.current = window.setInterval(async () => {
+                attempts++;
+                try {
+                  const info = await providerMailsApi.getLinkedAccounts();
+                  if (info.providers && info.providers.length > 0) {
+                    if (info.providers.includes(preferred)) {
+                      setMailProvider(preferred);
+                    } else {
+                      setMailProvider(info.providers[0]);
+                    }
+                    if (pollTimer.current) {
+                      clearInterval(pollTimer.current);
+                      pollTimer.current = null;
+                    }
+                  } else if (attempts >= maxAttempts) {
+                    if (pollTimer.current) {
+                      clearInterval(pollTimer.current);
+                      pollTimer.current = null;
+                    }
+                  }
+                } catch {
+                  if (attempts >= maxAttempts && pollTimer.current) {
+                    clearInterval(pollTimer.current);
+                    pollTimer.current = null;
+                  }
+                }
+              }, 2000);
+            }
+          } else {
+            window.location.href = url;
+          }
         } catch (e: any) {
           toast.error(e.message || "Failed to connect email");
         }
@@ -303,6 +345,15 @@ export default function Profile() {
     };
     exec();
   }, [profile, linked, linkedLoading, autoConnectAttempted]);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
+    };
+  }, []);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
