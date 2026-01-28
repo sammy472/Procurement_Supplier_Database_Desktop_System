@@ -112,6 +112,10 @@ export const getAuthUrl = async (req: AuthRequest, res: Response) => {
       url.searchParams.set("redirect_uri", redirectUri);
       url.searchParams.set("response_mode", "query");
       url.searchParams.set("scope", "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send");
+      url.searchParams.set("prompt", "select_account");
+      if (req.user?.email) {
+        url.searchParams.set("login_hint", req.user.email);
+      }
       url.searchParams.set("state", state);
       return res.json({ url: url.toString() });
     }
