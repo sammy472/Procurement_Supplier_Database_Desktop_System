@@ -22,3 +22,15 @@ declare module "*.webp" {
   const src: string;
   export default src;
 }
+
+export {};
+
+declare global {
+  interface Window {
+    auth: {
+      onCode: (
+        callback: (data: { code: string; provider: "google" | "microsoft" }) => void
+      ) => void;
+    };
+  }
+}
