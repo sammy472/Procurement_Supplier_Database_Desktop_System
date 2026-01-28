@@ -17,14 +17,25 @@ const MS_TOKEN_URL = `${MS_AUTH_COMMON}/token`;
 
 function pickEnv(name: string, company?: string) {
   const c = String(company || "").toUpperCase().trim();
-  const suffix = c === "ANT_SAVY" ? "_ANT_SAVY" : c === "ONK_GROUP" ? "_ONK_GROUP" : "";
+  let suffix = "";
+  if (c.includes("ANT_SAVY") || c.includes("ANT SAVY")) suffix = "_ANT_SAVY";
+  else if (c.includes("ONK_GROUP") || c.includes("ONK GROUP")) suffix = "_ONK_GROUP";
+
   const specific = process.env[`${name}${suffix}`];
   return (specific && specific.length ? specific : process.env[name]) || "";
 }
 
 function getSystemSenderEmail(company?: string) {
   const v = pickEnv("MS_SYSTEM_SENDER_EMAIL", company);
-  return v || "";
+  if (v) return v;
+
+  // Fallback to SMTP_FROM email address if available
+  const smtpFrom = process.env.SMTP_FROM || "";
+  const match = smtpFrom.match(/<([^>]+)>/);
+  if (match && match[1]) return match[1].trim();
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(smtpFrom)) return smtpFrom.trim();
+
+  return "";
 }
 
 export const sendEmail = async (options: EmailOptions) => {
@@ -55,7 +66,13 @@ export const sendEmail = async (options: EmailOptions) => {
 
   const delegatedTokenGetter = async () =>
     parsedFromEmail && company ? await getDelegatedTokenForEmail(parsedFromEmail, company).catch(() => null) : null;
-  const appTokenGetter = async () => await getAppOnlyToken(company).catch(() => null);
+  
+  let appTokenError: any = null;
+  const appTokenGetter = async () => await getAppOnlyToken(company).catch((err) => {
+    appTokenError = err;
+    console.error("App-only token error:", err);
+    return null;
+  });
 
   const isExpiredError = (err: any) => {
     const msg = String(err?.message || err || "");
@@ -126,7 +143,7 @@ export const sendEmail = async (options: EmailOptions) => {
     const reason =
       missing.length
         ? `missing ${missing.join(", ")}`
-        : "no linked Microsoft account and no app-only configuration";
+        : `no linked Microsoft account and no app-only configuration. App-only error: ${appTokenError?.message || String(appTokenError || "Unknown error")}`;
     throw new Error(`Email sending not configured: ${reason}`);
   }
 };
@@ -145,7 +162,14 @@ function buildGraphAttachments(attachments?: any[]): any[] {
   for (const a of attachments) {
     const name = a?.filename || a?.name || "attachment";
     const ct = a?.contentType || "application/octet-stream";
-    const base64 = a?.contentBase64 || a?.contentBytes;
+    let base64 = a?.contentBase64 || a?.contentBytes;
+
+    if (Buffer.isBuffer(a.content)) {
+      base64 = a.content.toString("base64");
+    } else if (typeof a.content === "string") {
+      base64 = a.content;
+    }
+
     if (typeof base64 === "string" && base64.length > 0) {
       const att: any = {
         "@odata.type": "#microsoft.graph.fileAttachment",
@@ -328,6 +352,25 @@ export function getBrandAssets() {
     return { attachments: [], logoCid: undefined as string | undefined };
   }
   const logoCid = "companylogo";
+  
+  if (logoUrl.startsWith("data:")) {
+    const matches = logoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      return {
+        attachments: [
+          {
+            filename: "logo.png",
+            contentBase64: matches[2],
+            contentType: matches[1],
+            cid: logoCid,
+            contentDisposition: "inline",
+          },
+        ],
+        logoCid,
+      };
+    }
+  }
+
   let filename = "logo";
   try {
     const u = new URL(logoUrl);
