@@ -25,7 +25,7 @@ function pickEnv(name: string, company?: string) {
   return (specific && specific.length ? specific : process.env[name]) || "";
 }
 
-function getSystemSenderEmail(company?: string) {
+export function getSystemSenderEmail(company?: string) {
   const v = pickEnv("MS_SYSTEM_SENDER_EMAIL", company);
   if (v) return v;
 
@@ -68,11 +68,19 @@ export const sendEmail = async (options: EmailOptions) => {
     parsedFromEmail && company ? await getDelegatedTokenForEmail(parsedFromEmail, company).catch(() => null) : null;
   
   let appTokenError: any = null;
-  const appTokenGetter = async () => await getAppOnlyToken(company).catch((err) => {
-    appTokenError = err;
-    console.error("App-only token error:", err);
-    return null;
-  });
+  const appTokenGetter = async () =>
+    await getAppOnlyToken(company).catch((err) => {
+      appTokenError = err;
+      const msg = String(err?.message || err || "");
+      if (msg.includes("53003") || msg.includes("Conditional Access")) {
+        console.error(
+          "Azure Conditional Access Blocked: Your Azure Tenant has a Conditional Access Policy that blocks this application (Service Principal) from authenticating. Please check Azure Portal > Security > Conditional Access, or ensure your IP is whitelisted in the policy."
+        );
+      } else {
+        console.error("App-only token error:", err);
+      }
+      return null;
+    });
 
   const isExpiredError = (err: any) => {
     const msg = String(err?.message || err || "");
@@ -88,6 +96,7 @@ export const sendEmail = async (options: EmailOptions) => {
       });
       return;
     } catch (err) {
+      console.warn("Delegated token send failed:", err);
       if (isExpiredError(err)) {
         const retryToken = await delegatedTokenGetter();
         if (retryToken) {
@@ -98,54 +107,36 @@ export const sendEmail = async (options: EmailOptions) => {
             });
             return;
           } catch (err2) {
-            // fall through to app-only
+            console.error("Delegated token retry failed:", err2);
+            throw err2;
           }
-        }
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  const appToken = await appTokenGetter();
-  const systemSender = getSystemSenderEmail(company) || parsedFromEmail || "";
-  if (appToken && systemSender) {
-    const endpoint = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(systemSender)}/sendMail`;
-    try {
-      await graphSend(endpoint, appToken, {
-        message,
-        saveToSentItems: "true",
-      });
-      return;
-    } catch (err) {
-      if (isExpiredError(err)) {
-        const retryToken = await appTokenGetter();
-        if (retryToken) {
-          await graphSend(endpoint, retryToken, {
-            message,
-            saveToSentItems: "true",
-          });
-          return;
         }
       }
       throw err;
     }
+  } else {
+    const errorMsg = "No delegated token available. Please ensure the sender email is linked to a Microsoft account in the system.";
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
-  {
-    const suffix = company ? `_${String(company).toUpperCase()}` : "";
-    const appId = pickEnv("MS_CLIENT_ID", company);
-    const appSecret = pickEnv("MS_CLIENT_SECRET", company);
-    const missing = [
-      !appId ? `MS_CLIENT_ID${suffix}` : null,
-      !appSecret ? `MS_CLIENT_SECRET${suffix}` : null,
-      !systemSender ? "sender email (MS_SYSTEM_SENDER_EMAIL or from)" : null,
-    ].filter(Boolean);
-    const reason =
-      missing.length
-        ? `missing ${missing.join(", ")}`
-        : `no linked Microsoft account and no app-only configuration. App-only error: ${appTokenError?.message || String(appTokenError || "Unknown error")}`;
-    throw new Error(`Email sending not configured: ${reason}`);
+
+  // Fallback to App-Only flow is DISABLED per user instruction.
+  // We keep getSystemSenderEmail, getAppOnlyToken, etc. in case we re-enable it later,
+  // or you can export them if needed elsewhere.
+  // To suppress "unused" warnings, we can comment them out or export them.
+  // For now, I'll export them so they are technically "used" (available) or just comment out usage.
+  
+  /*
+  const appToken = await appTokenGetter();
+  const systemSender = getSystemSenderEmail(company) || parsedFromEmail || "";
+  if (appToken && systemSender) {
+    // ...
   }
+  */
+
+  // This block is unreachable now because we either return or throw in the delegated block above.
+  // But to satisfy the compiler and handle unexpected cases, we can keep a generic error throw.
+  throw new Error("Email sending failed: No valid delegated token or configuration found.");
 };
 
 function parseEmail(from?: string): string | null {
