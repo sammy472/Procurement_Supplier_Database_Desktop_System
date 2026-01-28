@@ -19,7 +19,7 @@ import mailRoutes from "./routes/mailRoutes";
 import providerMailRoutes from "./routes/providerMailRoutes";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { sendEmail, buildBrandedEmail, getBrandAssets } from "./utils/email";
+import { sendEmail, buildBrandedEmail, getBrandAssets, getAnyDelegatedSender } from "./utils/email";
 import cron from "node-cron";
 
 dotenv.config();
@@ -110,6 +110,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function sendTenderTaskRemindersForWindow(minMs?: number, maxMs?: number) {
   try {
+    const company = String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP";
+    const available = await getAnyDelegatedSender(company);
+    if (!available) {
+      console.warn("No Microsoft delegated account linked for company; skipping task reminders.");
+      return;
+    }
     const now = new Date();
     const minDate = typeof minMs === "number" ? new Date(now.getTime() + minMs) : null;
     const maxDate = typeof maxMs === "number" ? new Date(now.getTime() + maxMs) : null;
@@ -246,6 +252,12 @@ async function sendTenderTaskRemindersForWindow(minMs?: number, maxMs?: number) 
 
 async function sendTenderDeadlineReminders() {
   try {
+    const company = String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP";
+    const available = await getAnyDelegatedSender(company);
+    if (!available) {
+      console.warn("No Microsoft delegated account linked for company; skipping deadline reminders.");
+      return;
+    }
     const now = new Date();
     const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

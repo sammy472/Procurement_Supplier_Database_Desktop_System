@@ -149,7 +149,7 @@ export const sendEmail = async (options: EmailOptions) => {
   throw new Error("Email sending failed: No valid delegated token or configuration found.");
 };
 
-function parseEmail(from?: string): string | null {
+export function parseEmail(from?: string): string | null {
   const v = String(from || "").trim();
   const match = v.match(/<([^>]+)>/);
   if (match && match[1]) return match[1].trim();
@@ -157,7 +157,7 @@ function parseEmail(from?: string): string | null {
   return null;
 }
 
-function buildGraphAttachments(attachments?: any[]): any[] {
+export function buildGraphAttachments(attachments?: any[]): any[] {
   if (!attachments || !Array.isArray(attachments)) return [];
   const out: any[] = [];
   for (const a of attachments) {
@@ -188,7 +188,7 @@ function buildGraphAttachments(attachments?: any[]): any[] {
   return out;
 }
 
-async function getAnyDelegatedSender(company: string): Promise<{ token: string; email: string } | null> {
+export async function getAnyDelegatedSender(company: string): Promise<{ token: string; email: string } | null> {
   const emailAccountsTable = getTable("emailAccounts", company);
   const usersTable = getTable("users", company);
   const accRows = await db.select().from(emailAccountsTable).limit(50) as any[];
