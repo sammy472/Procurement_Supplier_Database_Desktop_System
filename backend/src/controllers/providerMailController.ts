@@ -4,6 +4,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { getTable } from "../utils/dbHelper";
 import { eq } from "drizzle-orm";
+import { generateAccessToken, verifyAccessToken } from "../utils/jwt";
 
 type EmailAccountRow = typeof schema.emailAccounts.$inferSelect;
 
@@ -73,7 +74,14 @@ async function fetchJson<T>(url: string, options: any): Promise<T> {
 export const getAuthUrl = async (req: AuthRequest, res: Response) => {
   try {
     const { provider } = req.params;
-    const state = encodeURIComponent(JSON.stringify({ provider }));
+    const authUser = req.user!;
+    const signed = generateAccessToken({
+      id: authUser.id,
+      email: authUser.email,
+      role: authUser.role,
+      company: authUser.company,
+    });
+    const state = encodeURIComponent(JSON.stringify({ provider, token: signed }));
 
     if (provider === "google") {
       const url = new URL(GOOGLE_AUTH_URL);
@@ -116,12 +124,31 @@ export const getAuthUrl = async (req: AuthRequest, res: Response) => {
 export const oauthCallback = async (req: AuthRequest, res: Response) => {
   try {
     const { provider } = req.params;
-    const { code } = req.query as any;
-    const userId = req.user!.id;
-    const company = req.user?.company;
+    const { code, state: stateRaw } = req.query as any;
+    let userId: string | undefined = req.user?.id;
+    let company: string | undefined = req.user?.company;
 
     if (!code) {
       return res.status(400).json({ error: "Missing code" });
+    }
+
+    if (!userId || !company) {
+      try {
+        if (stateRaw) {
+          const parsed = JSON.parse(decodeURIComponent(String(stateRaw)));
+          if (parsed && parsed.token) {
+            const payload = verifyAccessToken(String(parsed.token));
+            userId = payload.id;
+            company = (payload.company || "").toUpperCase().trim();
+          }
+        }
+      } catch {
+        // ignore parse/verify errors
+      }
+    }
+
+    if (!userId || !company) {
+      return res.status(401).json({ error: "No token provided" });
     }
 
     if (provider === "google") {
@@ -142,7 +169,7 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
       const [acc] = (await db
         .insert(emailAccountsTable)
         .values({
-          userId,
+          userId: userId,
           provider: "google",
           accessToken: token.access_token,
           refreshToken: token.refresh_token || null,
@@ -183,7 +210,7 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
       const [acc] = (await db
         .insert(emailAccountsTable)
         .values({
-          userId,
+          userId: userId,
           provider: "microsoft",
           accessToken: token.access_token,
           refreshToken: token.refresh_token || null,

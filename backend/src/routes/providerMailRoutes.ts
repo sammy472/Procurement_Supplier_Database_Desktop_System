@@ -15,7 +15,7 @@ const router = Router();
 
 router.get("/linked", authenticate, getLinkedAccounts);
 router.get("/:provider/auth-url", authenticate, getAuthUrl);
-router.get("/:provider/callback", authenticate, oauthCallback);
+router.get("/:provider/callback", oauthCallback);
 router.get("/:provider/messages", authenticate, listMessages);
 router.get("/:provider/messages/:id", authenticate, getMessage);
 router.post("/:provider/messages", authenticate, sendMessage);
