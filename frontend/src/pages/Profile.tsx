@@ -14,6 +14,7 @@ import { isValidEmail } from "../utils/validation";
 declare global {
   interface Window {
     electron?: { openExternal: (url: string) => void };
+    api?: { send: (channel: string, data: any) => void };
   }
 }
 
@@ -304,6 +305,39 @@ export default function Profile() {
           const url = await providerMailsApi.getAuthUrl(preferred);
           if (window.electron && typeof window.electron.openExternal === "function") {
             window.electron.openExternal(url);
+            if (!pollTimer.current) {
+              let attempts = 0;
+              const maxAttempts = 60;
+              pollTimer.current = window.setInterval(async () => {
+                attempts++;
+                try {
+                  const info = await providerMailsApi.getLinkedAccounts();
+                  if (info.providers && info.providers.length > 0) {
+                    if (info.providers.includes(preferred)) {
+                      setMailProvider(preferred);
+                    } else {
+                      setMailProvider(info.providers[0]);
+                    }
+                    if (pollTimer.current) {
+                      clearInterval(pollTimer.current);
+                      pollTimer.current = null;
+                    }
+                  } else if (attempts >= maxAttempts) {
+                    if (pollTimer.current) {
+                      clearInterval(pollTimer.current);
+                      pollTimer.current = null;
+                    }
+                  }
+                } catch {
+                  if (attempts >= maxAttempts && pollTimer.current) {
+                    clearInterval(pollTimer.current);
+                    pollTimer.current = null;
+                  }
+                }
+              }, 2000);
+            }
+          } else if (window.api && typeof window.api.send === "function") {
+            window.api.send("open-external", url);
             if (!pollTimer.current) {
               let attempts = 0;
               const maxAttempts = 60;

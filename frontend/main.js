@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 
@@ -35,5 +35,12 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+// IPC to open external links in system browser
+ipcMain.on("open-external", (_event, url) => {
+  if (typeof url === "string" && url) {
+    shell.openExternal(url);
   }
 });
