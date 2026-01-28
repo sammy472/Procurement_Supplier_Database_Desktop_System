@@ -119,7 +119,7 @@ export const sendEmail = async (options: EmailOptions) => {
     const appId = pickEnv("MS_CLIENT_ID", company);
     const appSecret = pickEnv("MS_CLIENT_SECRET", company);
     const missing = [
-      !appId ? `MS_APP_CLIENT_ID${suffix}` : null,
+      !appId ? `MS_CLIENT_ID${suffix}` : null,
       !appSecret ? `MS_CLIENT_SECRET${suffix}` : null,
       !systemSender ? "sender email (MS_SYSTEM_SENDER_EMAIL or from)" : null,
     ].filter(Boolean);
@@ -209,7 +209,7 @@ async function refreshMicrosoftToken(acc: any, company: string): Promise<any> {
 
 async function getAppOnlyToken(company?: string): Promise<string> {
   const tenant = pickEnv("MS_TENANT_ID", company) || "organizations";
-  const clientId = pickEnv("MS_APP_CLIENT_ID", company);
+  const clientId = pickEnv("MS_CLIENT_ID", company);
   const clientSecret = pickEnv("MS_CLIENT_SECRET", company);
   const url = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
