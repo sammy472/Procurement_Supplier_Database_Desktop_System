@@ -44,7 +44,9 @@ export const sendEmail = async (options: EmailOptions) => {
   const bodyContent = hasHtml ? options.html! : options.text || "";
   const contentType = hasHtml ? "HTML" : "Text";
   const parsedFromEmail = parseEmail(options.from);
-  const company = parsedFromEmail ? getCompanyFromEmail(parsedFromEmail) : undefined;
+  const company = parsedFromEmail
+    ? getCompanyFromEmail(parsedFromEmail)
+    : (String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP");
 
   const message = {
     subject: options.subject,
@@ -53,10 +55,7 @@ export const sendEmail = async (options: EmailOptions) => {
       content: bodyContent,
     },
     toRecipients: toList.map((addr) => ({ emailAddress: { address: addr } })),
-    replyTo:
-      parsedFromEmail
-        ? [{ emailAddress: { address: parsedFromEmail } }]
-        : [],
+    replyTo: [],
   } as any;
 
   const graphAttachments = buildGraphAttachments(options.attachments);
@@ -87,7 +86,18 @@ export const sendEmail = async (options: EmailOptions) => {
     return msg.includes("InvalidAuthenticationToken") || msg.toLowerCase().includes("token is expired");
   };
 
-  const delegatedToken = await delegatedTokenGetter();
+  let delegatedEmail = parsedFromEmail || null;
+  let delegatedToken = await delegatedTokenGetter();
+  if (!delegatedToken) {
+    const any = await getAnyDelegatedSender(company).catch(() => null);
+    if (any && any.token) {
+      delegatedToken = any.token;
+      delegatedEmail = any.email || delegatedEmail;
+    }
+  }
+  if (delegatedEmail) {
+    message.replyTo = [{ emailAddress: { address: delegatedEmail } }];
+  }
   if (delegatedToken) {
     try {
       await graphSend("https://graph.microsoft.com/v1.0/me/sendMail", delegatedToken, {
@@ -176,6 +186,19 @@ function buildGraphAttachments(attachments?: any[]): any[] {
     }
   }
   return out;
+}
+
+async function getAnyDelegatedSender(company: string): Promise<{ token: string; email: string } | null> {
+  const emailAccountsTable = getTable("emailAccounts", company);
+  const usersTable = getTable("users", company);
+  const accRows = await db.select().from(emailAccountsTable).limit(50) as any[];
+  const msAcc = accRows.find((r) => String(r.provider || "").toLowerCase() === "microsoft");
+  if (!msAcc) return null;
+  const fresh = await refreshMicrosoftToken(msAcc, company);
+  const userRows = await db.select().from(usersTable).where(eq((usersTable as any).id, msAcc.userId)).limit(1) as any[];
+  const email = userRows.length ? userRows[0].email : "";
+  if (!fresh?.accessToken) return null;
+  return { token: fresh.accessToken, email };
 }
 
 async function getDelegatedTokenForEmail(email: string, company: string): Promise<string | null> {
