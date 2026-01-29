@@ -88,13 +88,7 @@ export const sendEmail = async (options: EmailOptions) => {
 
   let delegatedEmail = parsedFromEmail || null;
   let delegatedToken = await delegatedTokenGetter();
-  if (!delegatedToken) {
-    const any = await getAnyDelegatedSender(company).catch(() => null);
-    if (any && any.token) {
-      delegatedToken = any.token;
-      delegatedEmail = any.email || delegatedEmail;
-    }
-  }
+  // Do NOT fallback to any other delegated sender; enforce creator's linked account only
   if (delegatedEmail) {
     message.replyTo = [{ emailAddress: { address: delegatedEmail } }];
   }
@@ -125,7 +119,7 @@ export const sendEmail = async (options: EmailOptions) => {
       throw err;
     }
   } else {
-    const errorMsg = "No delegated token available. Please ensure the sender email is linked to a Microsoft account in the system.";
+    const errorMsg = "No delegated token available for specified sender. Link the sender email to a Microsoft account.";
     console.error(errorMsg);
     throw new Error(errorMsg);
   }
