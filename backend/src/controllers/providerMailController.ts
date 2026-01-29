@@ -152,7 +152,7 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
     }
 
     if (!userId || !company) {
-      return res.status(401).json({ error: "No token provided" });
+      return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent("No token provided")}`);
     }
 
     if (provider === "google") {
@@ -180,7 +180,7 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
           expiresAt,
         })
         .returning()) as EmailAccountRow[];
-      return res.json({ account: acc });
+      return res.redirect(`onk-savvy://email-callback?status=success&provider=google`);
     }
 
     if (provider === "microsoft") {
@@ -188,14 +188,12 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
       const clientSecret = pickEnv("MS_CLIENT_SECRET", company, true);
       const redirectUri = pickEnv("MS_REDIRECT_URL", company, true);
       if (!clientId || !clientSecret || !redirectUri) {
-        return res.status(400).json({
-          error: "Missing environment configuration",
-          missing: [
+        const missing = [
             !clientId ? `MS_CLIENT_ID${company ? `_${company}` : ""}` : null,
             !clientSecret ? `MS_CLIENT_SECRET${company ? `_${company}` : ""}` : null,
             !redirectUri ? `MS_REDIRECT_URL${company ? `_${company}` : ""}` : null,
-          ].filter(Boolean),
-        });
+          ].filter(Boolean).join(", ");
+        return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent("Missing config: " + missing)}`);
       }
       const body = new URLSearchParams({
         code: code as string,
@@ -221,12 +219,12 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
           expiresAt,
         })
         .returning()) as EmailAccountRow[];
-      return res.json({ account: acc });
+      return res.redirect(`onk-savvy://email-callback?status=success&provider=microsoft`);
     }
 
-    return res.status(400).json({ error: "Unsupported provider" });
+    return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent("Unsupported provider")}`);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent(error.message)}`);
   }
 };
 
