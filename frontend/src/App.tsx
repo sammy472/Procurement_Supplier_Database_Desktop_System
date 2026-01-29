@@ -48,7 +48,7 @@ function App() {
         
         if (status === "success") {
           toast.success(`Connected ${provider || "email"} account successfully`);
-          queryClient.invalidateQueries({ queryKey: ["linked-accounts"] });
+           queryClient.invalidateQueries({ queryKey: ["linked-email-accounts"] });
         } else if (error) {
           toast.error(`Failed to connect: ${decodeURIComponent(error)}`);
         } else if (status === "error") {

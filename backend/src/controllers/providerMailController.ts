@@ -396,8 +396,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const { provider } = req.params as any;
     const acc = await getFreshAccount(req.user!.id, provider, req.user?.company);
     const { subject, bodyText, to = [], cc = [], bcc = [], attachments = [] } = req.body as any;
-    if (!subject || !Array.isArray(to) || to.length === 0) {
-      return res.status(400).json({ error: "Subject and recipients required" });
+  const totalRecipients =
+    (Array.isArray(to) ? to.length : 0) +
+    (Array.isArray(cc) ? cc.length : 0) +
+    (Array.isArray(bcc) ? bcc.length : 0);
+  if (!subject || totalRecipients === 0) {
+    return res.status(400).json({ error: "Subject and at least one recipient required" });
     }
     if (provider === "google") {
       const boundary = "mixed_" + Math.random().toString(36).slice(2);
