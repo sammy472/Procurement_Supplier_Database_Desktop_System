@@ -3,7 +3,7 @@ import { useAuthStore } from "./store/authStore";
 import { useThemeStore } from "./store/themeStore";
 import { useEffect, lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
 import LoadingSkeleton from "./components/LoadingSkeleton";
@@ -33,6 +33,36 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function App() {
   const isDark = useThemeStore((state) => state.isDark);
   const queryClient = new QueryClient();
+
+  useEffect(() => {
+    // Listen for deep links (e.g. onk-savvy://email-callback?status=success)
+    const removeListener = (window.electron as any)?.onDeepLink?.((url: string) => {
+      console.log("Deep link received:", url);
+      try {
+        const queryStr = url.split("?")[1];
+        if (!queryStr) return;
+        const params = new URLSearchParams(queryStr);
+        const status = params.get("status");
+        const provider = params.get("provider");
+        const error = params.get("error");
+        
+        if (status === "success") {
+          toast.success(`Connected ${provider || "email"} account successfully`);
+          queryClient.invalidateQueries({ queryKey: ["linked-accounts"] });
+        } else if (error) {
+          toast.error(`Failed to connect: ${decodeURIComponent(error)}`);
+        } else if (status === "error") {
+          toast.error("Failed to connect email account");
+        }
+      } catch (e) {
+        console.error("Error parsing deep link", e);
+      }
+    });
+
+    return () => {
+      if (removeListener) removeListener();
+    };
+  }, [queryClient]);
 
   useEffect(() => {
     if (isDark) {

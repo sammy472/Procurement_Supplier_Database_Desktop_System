@@ -11,13 +11,6 @@ import {
 import { providerMailsApi, Provider } from "../api/providerMails";
 import { isValidEmail } from "../utils/validation";
 
-declare global {
-  interface Window {
-    electron?: { openExternal: (url: string) => void };
-    api?: { send: (channel: string, data: any) => void };
-  }
-}
-
 export default function Profile() {
   const queryClient = useQueryClient();
   const [isEditing, isProfileEditing] = useState(false);

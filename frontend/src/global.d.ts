@@ -27,6 +27,13 @@ export {};
 
 declare global {
   interface Window {
+    electron: {
+      openExternal: (url: string) => void;
+      onDeepLink: (callback: (url: string) => void) => () => void;
+    };
+    api: {
+      send: (channel: string, data: any) => void;
+    };
     auth: {
       onCode: (
         callback: (data: { code: string; provider: "google" | "microsoft" }) => void

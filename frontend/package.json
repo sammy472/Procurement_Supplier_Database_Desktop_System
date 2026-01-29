@@ -37,7 +37,15 @@
       "createStartMenuShortcut": true,
       "uninstallerIcon": "assets/KO.ico",
       "installerIcon": "assets/KO.ico"
-    }
+    },
+    "protocols": [
+      {
+        "name": "ONK-SAVVY",
+        "schemes": [
+          "onk-savvy"
+        ]
+      }
+    ]
   }
   ,
   "dependencies": {
