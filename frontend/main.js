@@ -82,11 +82,11 @@ if (!gotTheLock) {
     }
   });
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
 
   // IPC to open external links in system browser
   ipcMain.on("open-external", (_event, url) => {

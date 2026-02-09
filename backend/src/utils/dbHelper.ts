@@ -34,7 +34,7 @@ export const getTable = (tableName: string, company?: string | null) => {
  */
 export const getCompanyFromEmail = (email: string): Company => {
   const e = email.toLowerCase();
-  if (e.endsWith("@antsavy.co.uk") || e.endsWith("@antsavy.com")) {
+  if (e.endsWith("@ant-savvy.co.uk") || e.endsWith("@ant-savvy.com")) {
     return "ANT_SAVY";
   }
   return "ONK_GROUP";

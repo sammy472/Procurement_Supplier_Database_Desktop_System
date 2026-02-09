@@ -22,7 +22,7 @@ router.post("/reset-password", authController.resetPassword);
 router.get(
   "/users",
   authenticate,
-  authorize("admin", "procurement_officer"),
+  authorize("admin", "procurement_officer", "engineer", "viewer"),
   authController.getUsers
 );
 

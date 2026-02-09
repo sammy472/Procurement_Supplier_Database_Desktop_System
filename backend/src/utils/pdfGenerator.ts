@@ -345,7 +345,7 @@ export const generatePurchaseOrderPDFNEW = (
   inline: boolean = false
 ) => {
   const doc = new PDFDocument({
-    margin: 0,
+    margin: 20,
     size: "A4",
     bufferPages: true,
   });
@@ -392,7 +392,7 @@ export const generatePurchaseOrderPDFNEW = (
       currentY,
       { align: "left" }
     );
-  currentY += 20;
+  currentY = doc.y + 20;
 
   // Supplier block
   doc.fontSize(11).font("Times-Bold").text("Supplier:", 2, currentY);
@@ -414,13 +414,13 @@ export const generatePurchaseOrderPDFNEW = (
     doc.text(`Phone: ${po.supplierPhone}`, 2, currentY);
     currentY += 15;
   }
-  currentY += 10;
+  currentY = doc.y + 10;
 
   // Subject
   doc.fontSize(16).font("Times-Bold").text("PURCHASE ORDER", 2, currentY);
-  currentY += 20;
+  currentY = doc.y + 20;
   doc.fontSize(11).font("Times-Roman").text(`PO Number: ${po.poNumber}`, 2, currentY);
-  currentY += 20;
+  currentY = doc.y + 20;
 
   // Logo
   try {
@@ -510,7 +510,7 @@ export const generatePurchaseOrderPDFNEW = (
 
 export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response, inline: boolean = false) => {
   const doc = new PDFDocument({ 
-    margin: 0,
+    margin: 20,
     size: 'A4',
     bufferPages: true,
   });
@@ -562,29 +562,27 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
       day: 'numeric'
     }),2, currentY, { align: 'left' });
   
-  currentY += 20;
+  currentY = 20 + doc.y;
 
   // Client Details - Left side (like in template)
-  doc.fontSize(11).font('Times-Bold')
-    .text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
+  doc.fontSize(11).font('Times-Bold').text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
   
-  currentY += 15;
+  currentY = doc.y + 10;
   
   // Process multi-line address
   const clientLines = quotation.clientAddress?.split('\n') || [];
   doc.fontSize(10).font('Times-Bold');
   clientLines.forEach(line => {
     doc.text(line.trim(), 2, currentY);
-    currentY += 15;
+    currentY += 10;
   });
 
-  currentY += 20;
+  currentY = doc.y + 20;
 
   // Salutation
-  doc.fontSize(11).font('Times-Roman')
-    .text('Dear Sir/Madam,', 2, currentY);
+  doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
   
-  currentY += 30;
+  currentY = doc.y + 30;
 
   // Subject/Reference
   const subjectText = quotation.projectTitle 
@@ -594,7 +592,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   doc.fontSize(12).font('Times-Bold')
     .text(subjectText, 2, currentY);
   
-  currentY += 20;
+  currentY = doc.y + 10;
 
   // Body text
   //split total amount
@@ -608,42 +606,41 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
     align: 'justify'
   });
   
-  currentY += 90;
+  currentY = doc.y + 40;
 
   // Delivery period
   doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
-  currentY += 15;
+  currentY = doc.y + 10;
   doc.fontSize(11).font('Times-Roman')
     .text(`Delivery shall be made within ${quotation.deliveryPeriod || '1 week'} after receipt of a Confirmed Purchase Order.`, 5);
-  
-  currentY += 30;
+  doc.moveDown();
+  currentY = doc.y + 15;
 
   // Delivery Terms
   doc.fontSize(12).font('Times-Bold').text('- Delivery Terms', 2, currentY);
-  currentY += 15;
+  currentY = doc.y + 10;
   doc.fontSize(11).font('Times-Roman').text(quotation.deliveryTerms || 'NA', 2, currentY);
-  
-  currentY += 30;
+  doc.moveDown();
+  currentY = doc.y + 15;
 
   // Tender Validity
   doc.fontSize(12).font('Times-Bold').text('- Tender Validity', 2, currentY);
-  currentY += 15;
+  currentY = doc.y + 10;
   doc.fontSize(11).font('Times-Roman').text(`Our price contained in our tender submission shall be valid for a period of ${quotation.validityPeriod || 60} days.`, 2, currentY);
-  
-  currentY += 30;
+  doc.moveDown();
+  currentY = doc.y + 15;
 
   // Terms of Payment
   doc.fontSize(12).font('Times-Bold').text('- Terms of Payment', 2, currentY);
-  currentY += 15;
+  currentY = doc.y + 10;
   doc.fontSize(11).font('Times-Roman').text(quotation.paymentTerms || '45 days after delivery of invoices', 2, currentY);
-  
-  currentY += 30;
+  currentY = doc.y + 15;
 
   // Closing remarks
   doc.fontSize(11).font('Times-Roman').text('I look forward to building a mutually beneficial business relationship with you.', 2, currentY);
-  doc.moveDown(20);
-  doc.text('Thank you.', 2, currentY+20);
-  currentY += 50;
+  currentY = doc.y + 20;
+  doc.text('Thank you.', 2, currentY);
+  currentY = doc.y + 35;
   //Insert Stamp Image
   try {
     doc.image(stampPath, 2, currentY, { width: 150, height: 100 });
@@ -651,7 +648,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
     console.warn('Stamp image not found, continuing without it');
   }  
   
-  currentY += 60;
+  currentY = doc.y + 60;
 
   // Check if we need a new page for PROFORMA INVOICE
   if (currentY + doc.y > doc.page.height) {
@@ -669,18 +666,18 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   // PROFORMA INVOICE Section
   doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
   
-  currentY += 95;
+  currentY = doc.y + 80;
 
   // Supplier Info (ONK GROUP LIMITED)
   doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-  currentY += 15;
+  currentY = doc.y + 15;
   
   doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-  currentY += 15;
+  currentY = doc.y + 15;
   doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-  currentY += 15;
+  currentY = doc.y + 15;
   doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
-  currentY += 15;
+  currentY = doc.y + 15;
 
   // Date - Top right corner
   doc.fontSize(12).font('Times-Bold')
@@ -690,13 +687,12 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
       day: 'numeric'
     }),2, currentY, { align: 'left' });
   
-  currentY += 30;
+  currentY = doc.y + 30;
 
   // Bill To section
   doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY);
   
-  currentY += 15;
-  doc.moveDown(2);
+  currentY = doc.y + 15;
   // First Line Items Table (Summary Table)
   const itemHeight = 35;
   const pageWidth = doc.page.width-4;
@@ -730,7 +726,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   });
 
   //Taxation and Total Amount
-  currentY += (testLineItems.length + 1) * itemHeight + 20;
+  currentY = doc.y + (testLineItems.length + 1) * itemHeight + 20;
   doc.fontSize(12).font('Times-Bold');
   const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
   const additionalInfoArray = [
@@ -801,13 +797,13 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
         day: 'numeric'
       }),2, currentY, { align: 'left' });
     
-    currentY += 20;
+    currentY = doc.y + 20;
 
     // Client Details
     doc.fontSize(11).font('Times-Bold')
       .text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
     
-    currentY += 15;
+    currentY = doc.y + 15;  
     
     // Process multi-line address
     const clientLines = quotation.clientAddress?.split('\n') || [];
@@ -817,13 +813,13 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
       currentY += 15;
     });
 
-    currentY += 20;
+    currentY = doc.y + 20; 
 
     // Salutation
     doc.fontSize(11).font('Times-Roman')
       .text('Dear Sir/Madam,', 2, currentY);
     
-    currentY += 30;
+    currentY = doc.y + 30;
 
     // Subject/Reference
     const subjectText = quotation.projectTitle 
@@ -833,7 +829,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     doc.fontSize(12).font('Times-Bold')
       .text(subjectText, 2, currentY);
     
-    currentY += 20;
+    currentY = doc.y + 10;
 
     // Body text
     const [whole, fraction] = quotation.total.split('.');
@@ -846,42 +842,42 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
       align: 'justify'
     });
     
-    currentY += 95;
+    currentY = doc.y + 80; 
 
     // Delivery period
     doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
-    currentY += 15;
+    currentY = doc.y + 10;
     doc.fontSize(11).font('Times-Roman')
       .text(`Delivery shall be made within ${quotation.deliveryPeriod || '1 week'} after receipt of a Confirmed Purchase Order.`, 5);
     
-    currentY += 30;
+    currentY = doc.y + 15;
 
     // Delivery Terms
     doc.fontSize(12).font('Times-Bold').text('- Delivery Terms', 2, currentY);
-    currentY += 15;
+    currentY = doc.y + 10; 
     doc.fontSize(11).font('Times-Roman').text(quotation.deliveryTerms || 'NA', 2, currentY);
     
-    currentY += 30;
+    currentY = doc.y + 15;
 
     // Tender Validity
     doc.fontSize(12).font('Times-Bold').text('- Tender Validity', 2, currentY);
-    currentY += 15;
+    currentY = doc.y + 10;
     doc.fontSize(11).font('Times-Roman').text(`Our price contained in our tender submission shall be valid for a period of ${quotation.validityPeriod || 60} days.`, 2, currentY);
     
-    currentY += 30;
+    currentY = doc.y + 15;
 
     // Terms of Payment
     doc.fontSize(12).font('Times-Bold').text('- Terms of Payment', 2, currentY);
-    currentY += 15;
+    currentY = doc.y + 10;
     doc.fontSize(11).font('Times-Roman').text(quotation.paymentTerms || '45 days after delivery of invoices', 2, currentY);
     
-    currentY += 30;
+    currentY = doc.y + 15;
 
     // Closing remarks
     doc.fontSize(11).font('Times-Roman').text('I look forward to building a mutually beneficial business relationship with you.', 2, currentY);
     doc.moveDown(20);
     doc.text('Thank you.', 2, currentY+20);
-    currentY += 50;
+    currentY = doc.y + 50;
 
     // Stamp
     try {
@@ -890,7 +886,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
       console.warn('Stamp image not found, continuing without it');
     }  
     
-    currentY += 60;
+    currentY = doc.y + 60;
 
     // PROFORMA INVOICE Check
     if (currentY + doc.y > doc.page.height) {
@@ -908,18 +904,18 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     // PROFORMA INVOICE Section
     doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
     
-    currentY += 90;
+    currentY = doc.y + 90;
 
     // Supplier Info
     doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-    currentY += 15;
+    currentY = doc.y + 15;
     
     doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-    currentY += 15;
+    currentY = doc.y + 15;
     doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-    currentY += 15;
+    currentY = doc.y + 15;    
     doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
-    currentY += 15;
+    currentY = doc.y + 15; 
 
     // Date
     doc.fontSize(12).font('Times-Bold')
@@ -929,12 +925,12 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
         day: 'numeric'
       }),2, currentY, { align: 'left' });
     
-    currentY += 30;
+    currentY = doc.y + 30;
 
     // Bill To section
     doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY);
     
-    currentY += 15;
+    currentY = doc.y + 15;
     doc.moveDown(2);
 
     // Summary Table

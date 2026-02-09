@@ -4,6 +4,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { getTable } from "../utils/dbHelper";
 import { eq } from "drizzle-orm";
+import { generateAccessToken, verifyAccessToken } from "../utils/jwt";
 
 type EmailAccountRow = typeof schema.emailAccounts.$inferSelect;
 
@@ -73,7 +74,14 @@ async function fetchJson<T>(url: string, options: any): Promise<T> {
 export const getAuthUrl = async (req: AuthRequest, res: Response) => {
   try {
     const { provider } = req.params;
-    const state = encodeURIComponent(JSON.stringify({ provider }));
+    const authUser = req.user!;
+    const signed = generateAccessToken({
+      id: authUser.id,
+      email: authUser.email,
+      role: authUser.role,
+      company: authUser.company,
+    });
+    const state = encodeURIComponent(JSON.stringify({ provider, token: signed }));
 
     if (provider === "google") {
       const url = new URL(GOOGLE_AUTH_URL);
@@ -104,6 +112,10 @@ export const getAuthUrl = async (req: AuthRequest, res: Response) => {
       url.searchParams.set("redirect_uri", redirectUri);
       url.searchParams.set("response_mode", "query");
       url.searchParams.set("scope", "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send");
+      url.searchParams.set("prompt", "select_account");
+      if (req.user?.email) {
+        url.searchParams.set("login_hint", req.user.email);
+      }
       url.searchParams.set("state", state);
       return res.json({ url: url.toString() });
     }
@@ -116,12 +128,31 @@ export const getAuthUrl = async (req: AuthRequest, res: Response) => {
 export const oauthCallback = async (req: AuthRequest, res: Response) => {
   try {
     const { provider } = req.params;
-    const { code } = req.query as any;
-    const userId = req.user!.id;
-    const company = req.user?.company;
+    const { code, state: stateRaw } = req.query as any;
+    let userId: string | undefined = req.user?.id;
+    let company: string | undefined = req.user?.company;
 
     if (!code) {
       return res.status(400).json({ error: "Missing code" });
+    }
+
+    if (!userId || !company) {
+      try {
+        if (stateRaw) {
+          const parsed = JSON.parse(decodeURIComponent(String(stateRaw)));
+          if (parsed && parsed.token) {
+            const payload = verifyAccessToken(String(parsed.token));
+            userId = payload.id;
+            company = (payload.company || "").toUpperCase().trim();
+          }
+        }
+      } catch {
+        // ignore parse/verify errors
+      }
+    }
+
+    if (!userId || !company) {
+      return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent("No token provided")}`);
     }
 
     if (provider === "google") {
@@ -142,14 +173,14 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
       const [acc] = (await db
         .insert(emailAccountsTable)
         .values({
-          userId,
+          userId: userId,
           provider: "google",
           accessToken: token.access_token,
           refreshToken: token.refresh_token || null,
           expiresAt,
         })
         .returning()) as EmailAccountRow[];
-      return res.json({ account: acc });
+      return res.redirect(`onk-savvy://email-callback?status=success&provider=google`);
     }
 
     if (provider === "microsoft") {
@@ -157,14 +188,12 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
       const clientSecret = pickEnv("MS_CLIENT_SECRET", company, true);
       const redirectUri = pickEnv("MS_REDIRECT_URL", company, true);
       if (!clientId || !clientSecret || !redirectUri) {
-        return res.status(400).json({
-          error: "Missing environment configuration",
-          missing: [
+        const missing = [
             !clientId ? `MS_CLIENT_ID${company ? `_${company}` : ""}` : null,
             !clientSecret ? `MS_CLIENT_SECRET${company ? `_${company}` : ""}` : null,
             !redirectUri ? `MS_REDIRECT_URL${company ? `_${company}` : ""}` : null,
-          ].filter(Boolean),
-        });
+          ].filter(Boolean).join(", ");
+        return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent("Missing config: " + missing)}`);
       }
       const body = new URLSearchParams({
         code: code as string,
@@ -183,19 +212,19 @@ export const oauthCallback = async (req: AuthRequest, res: Response) => {
       const [acc] = (await db
         .insert(emailAccountsTable)
         .values({
-          userId,
+          userId: userId,
           provider: "microsoft",
           accessToken: token.access_token,
           refreshToken: token.refresh_token || null,
           expiresAt,
         })
         .returning()) as EmailAccountRow[];
-      return res.json({ account: acc });
+      return res.redirect(`onk-savvy://email-callback?status=success&provider=microsoft`);
     }
 
-    return res.status(400).json({ error: "Unsupported provider" });
+    return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent("Unsupported provider")}`);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    return res.redirect(`onk-savvy://email-callback?status=error&error=${encodeURIComponent(error.message)}`);
   }
 };
 
@@ -367,8 +396,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const { provider } = req.params as any;
     const acc = await getFreshAccount(req.user!.id, provider, req.user?.company);
     const { subject, bodyText, to = [], cc = [], bcc = [], attachments = [] } = req.body as any;
-    if (!subject || !Array.isArray(to) || to.length === 0) {
-      return res.status(400).json({ error: "Subject and recipients required" });
+  const totalRecipients =
+    (Array.isArray(to) ? to.length : 0) +
+    (Array.isArray(cc) ? cc.length : 0) +
+    (Array.isArray(bcc) ? bcc.length : 0);
+  if (!subject || totalRecipients === 0) {
+    return res.status(400).json({ error: "Subject and at least one recipient required" });
     }
     if (provider === "google") {
       const boundary = "mixed_" + Math.random().toString(36).slice(2);

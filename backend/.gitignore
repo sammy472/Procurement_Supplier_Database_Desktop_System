@@ -3,4 +3,4 @@
 .env.development
 .env.*.test
 node_modules/
-./src/db/seed.ts
+/src/db/seed.ts

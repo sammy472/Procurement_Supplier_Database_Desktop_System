@@ -17,14 +17,25 @@ const MS_TOKEN_URL = `${MS_AUTH_COMMON}/token`;
 
 function pickEnv(name: string, company?: string) {
   const c = String(company || "").toUpperCase().trim();
-  const suffix = c === "ANT_SAVY" ? "_ANT_SAVY" : c === "ONK_GROUP" ? "_ONK_GROUP" : "";
+  let suffix = "";
+  if (c.includes("ANT_SAVY") || c.includes("ANT SAVY")) suffix = "_ANT_SAVY";
+  else if (c.includes("ONK_GROUP") || c.includes("ONK GROUP")) suffix = "_ONK_GROUP";
+
   const specific = process.env[`${name}${suffix}`];
   return (specific && specific.length ? specific : process.env[name]) || "";
 }
 
-function getSystemSenderEmail(company?: string) {
+export function getSystemSenderEmail(company?: string) {
   const v = pickEnv("MS_SYSTEM_SENDER_EMAIL", company);
-  return v || "";
+  if (v) return v;
+
+  // Fallback to SMTP_FROM email address if available
+  const smtpFrom = process.env.SMTP_FROM || "";
+  const match = smtpFrom.match(/<([^>]+)>/);
+  if (match && match[1]) return match[1].trim();
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(smtpFrom)) return smtpFrom.trim();
+
+  return "";
 }
 
 export const sendEmail = async (options: EmailOptions) => {
@@ -33,7 +44,9 @@ export const sendEmail = async (options: EmailOptions) => {
   const bodyContent = hasHtml ? options.html! : options.text || "";
   const contentType = hasHtml ? "HTML" : "Text";
   const parsedFromEmail = parseEmail(options.from);
-  const company = parsedFromEmail ? getCompanyFromEmail(parsedFromEmail) : undefined;
+  const company = parsedFromEmail
+    ? getCompanyFromEmail(parsedFromEmail)
+    : (String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP");
 
   const message = {
     subject: options.subject,
@@ -42,10 +55,7 @@ export const sendEmail = async (options: EmailOptions) => {
       content: bodyContent,
     },
     toRecipients: toList.map((addr) => ({ emailAddress: { address: addr } })),
-    replyTo:
-      parsedFromEmail
-        ? [{ emailAddress: { address: parsedFromEmail } }]
-        : [],
+    replyTo: [],
   } as any;
 
   const graphAttachments = buildGraphAttachments(options.attachments);
@@ -55,14 +65,33 @@ export const sendEmail = async (options: EmailOptions) => {
 
   const delegatedTokenGetter = async () =>
     parsedFromEmail && company ? await getDelegatedTokenForEmail(parsedFromEmail, company).catch(() => null) : null;
-  const appTokenGetter = async () => await getAppOnlyToken(company).catch(() => null);
+  
+  let appTokenError: any = null;
+  const appTokenGetter = async () =>
+    await getAppOnlyToken(company).catch((err) => {
+      appTokenError = err;
+      const msg = String(err?.message || err || "");
+      if (msg.includes("53003") || msg.includes("Conditional Access")) {
+        console.error(
+          "Azure Conditional Access Blocked: Your Azure Tenant has a Conditional Access Policy that blocks this application (Service Principal) from authenticating. Please check Azure Portal > Security > Conditional Access, or ensure your IP is whitelisted in the policy."
+        );
+      } else {
+        console.error("App-only token error:", err);
+      }
+      return null;
+    });
 
   const isExpiredError = (err: any) => {
     const msg = String(err?.message || err || "");
     return msg.includes("InvalidAuthenticationToken") || msg.toLowerCase().includes("token is expired");
   };
 
-  const delegatedToken = await delegatedTokenGetter();
+  let delegatedEmail = parsedFromEmail || null;
+  let delegatedToken = await delegatedTokenGetter();
+  // Do NOT fallback to any other delegated sender; enforce creator's linked account only
+  if (delegatedEmail) {
+    message.replyTo = [{ emailAddress: { address: delegatedEmail } }];
+  }
   if (delegatedToken) {
     try {
       await graphSend("https://graph.microsoft.com/v1.0/me/sendMail", delegatedToken, {
@@ -71,6 +100,7 @@ export const sendEmail = async (options: EmailOptions) => {
       });
       return;
     } catch (err) {
+      console.warn("Delegated token send failed:", err);
       if (isExpiredError(err)) {
         const retryToken = await delegatedTokenGetter();
         if (retryToken) {
@@ -81,57 +111,39 @@ export const sendEmail = async (options: EmailOptions) => {
             });
             return;
           } catch (err2) {
-            // fall through to app-only
+            console.error("Delegated token retry failed:", err2);
+            throw err2;
           }
-        }
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  const appToken = await appTokenGetter();
-  const systemSender = getSystemSenderEmail(company) || parsedFromEmail || "";
-  if (appToken && systemSender) {
-    const endpoint = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(systemSender)}/sendMail`;
-    try {
-      await graphSend(endpoint, appToken, {
-        message,
-        saveToSentItems: "true",
-      });
-      return;
-    } catch (err) {
-      if (isExpiredError(err)) {
-        const retryToken = await appTokenGetter();
-        if (retryToken) {
-          await graphSend(endpoint, retryToken, {
-            message,
-            saveToSentItems: "true",
-          });
-          return;
         }
       }
       throw err;
     }
+  } else {
+    const errorMsg = "No delegated token available for specified sender. Link the sender email to a Microsoft account.";
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
-  {
-    const suffix = company ? `_${String(company).toUpperCase()}` : "";
-    const appId = pickEnv("MS_CLIENT_ID", company);
-    const appSecret = pickEnv("MS_CLIENT_SECRET", company);
-    const missing = [
-      !appId ? `MS_APP_CLIENT_ID${suffix}` : null,
-      !appSecret ? `MS_CLIENT_SECRET${suffix}` : null,
-      !systemSender ? "sender email (MS_SYSTEM_SENDER_EMAIL or from)" : null,
-    ].filter(Boolean);
-    const reason =
-      missing.length
-        ? `missing ${missing.join(", ")}`
-        : "no linked Microsoft account and no app-only configuration";
-    throw new Error(`Email sending not configured: ${reason}`);
+
+  // Fallback to App-Only flow is DISABLED per user instruction.
+  // We keep getSystemSenderEmail, getAppOnlyToken, etc. in case we re-enable it later,
+  // or you can export them if needed elsewhere.
+  // To suppress "unused" warnings, we can comment them out or export them.
+  // For now, I'll export them so they are technically "used" (available) or just comment out usage.
+  
+  /*
+  const appToken = await appTokenGetter();
+  const systemSender = getSystemSenderEmail(company) || parsedFromEmail || "";
+  if (appToken && systemSender) {
+    // ...
   }
+  */
+
+  // This block is unreachable now because we either return or throw in the delegated block above.
+  // But to satisfy the compiler and handle unexpected cases, we can keep a generic error throw.
+  throw new Error("Email sending failed: No valid delegated token or configuration found.");
 };
 
-function parseEmail(from?: string): string | null {
+export function parseEmail(from?: string): string | null {
   const v = String(from || "").trim();
   const match = v.match(/<([^>]+)>/);
   if (match && match[1]) return match[1].trim();
@@ -139,13 +151,20 @@ function parseEmail(from?: string): string | null {
   return null;
 }
 
-function buildGraphAttachments(attachments?: any[]): any[] {
+export function buildGraphAttachments(attachments?: any[]): any[] {
   if (!attachments || !Array.isArray(attachments)) return [];
   const out: any[] = [];
   for (const a of attachments) {
     const name = a?.filename || a?.name || "attachment";
     const ct = a?.contentType || "application/octet-stream";
-    const base64 = a?.contentBase64 || a?.contentBytes;
+    let base64 = a?.contentBase64 || a?.contentBytes;
+
+    if (Buffer.isBuffer(a.content)) {
+      base64 = a.content.toString("base64");
+    } else if (typeof a.content === "string") {
+      base64 = a.content;
+    }
+
     if (typeof base64 === "string" && base64.length > 0) {
       const att: any = {
         "@odata.type": "#microsoft.graph.fileAttachment",
@@ -161,6 +180,19 @@ function buildGraphAttachments(attachments?: any[]): any[] {
     }
   }
   return out;
+}
+
+export async function getAnyDelegatedSender(company: string): Promise<{ token: string; email: string } | null> {
+  const emailAccountsTable = getTable("emailAccounts", company);
+  const usersTable = getTable("users", company);
+  const accRows = await db.select().from(emailAccountsTable).limit(50) as any[];
+  const msAcc = accRows.find((r) => String(r.provider || "").toLowerCase() === "microsoft");
+  if (!msAcc) return null;
+  const fresh = await refreshMicrosoftToken(msAcc, company);
+  const userRows = await db.select().from(usersTable).where(eq((usersTable as any).id, msAcc.userId)).limit(1) as any[];
+  const email = userRows.length ? userRows[0].email : "";
+  if (!fresh?.accessToken) return null;
+  return { token: fresh.accessToken, email };
 }
 
 async function getDelegatedTokenForEmail(email: string, company: string): Promise<string | null> {
@@ -209,7 +241,7 @@ async function refreshMicrosoftToken(acc: any, company: string): Promise<any> {
 
 async function getAppOnlyToken(company?: string): Promise<string> {
   const tenant = pickEnv("MS_TENANT_ID", company) || "organizations";
-  const clientId = pickEnv("MS_APP_CLIENT_ID", company);
+  const clientId = pickEnv("MS_CLIENT_ID", company);
   const clientSecret = pickEnv("MS_CLIENT_SECRET", company);
   const url = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
@@ -328,6 +360,25 @@ export function getBrandAssets() {
     return { attachments: [], logoCid: undefined as string | undefined };
   }
   const logoCid = "companylogo";
+  
+  if (logoUrl.startsWith("data:")) {
+    const matches = logoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      return {
+        attachments: [
+          {
+            filename: "logo.png",
+            contentBase64: matches[2],
+            contentType: matches[1],
+            cid: logoCid,
+            contentDisposition: "inline",
+          },
+        ],
+        logoCid,
+      };
+    }
+  }
+
   let filename = "logo";
   try {
     const u = new URL(logoUrl);

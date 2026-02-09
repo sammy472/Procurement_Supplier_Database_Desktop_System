@@ -21,7 +21,7 @@ import invoiceVariantRoutes from "./routes/invoiceVariantRoutes";
 import invoiceRoutes from "./routes/invoiceRoutes";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { sendEmail, buildBrandedEmail, getBrandAssets } from "./utils/email";
+import { sendEmail, buildBrandedEmail, getBrandAssets, getAnyDelegatedSender } from "./utils/email";
 import cron from "node-cron";
 
 dotenv.config();
@@ -114,6 +114,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function sendTenderTaskRemindersForWindow(minMs?: number, maxMs?: number) {
   try {
+    const company = String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP";
+    console.log(`Sending tender task reminders for company: ${company}`);
+    // Proceed without company-wide delegated fallback; each email must use the tender creator's linked account
     const now = new Date();
     const minDate = typeof minMs === "number" ? new Date(now.getTime() + minMs) : null;
     const maxDate = typeof maxMs === "number" ? new Date(now.getTime() + maxMs) : null;
@@ -234,14 +237,18 @@ async function sendTenderTaskRemindersForWindow(minMs?: number, maxMs?: number) 
         senderPosition: "Tender Creator",
       });
 
-      await sendEmail({
-        to: email,
-        subject: "Pending tender task reminder",
-        text,
-        html,
-        attachments,
-        from: creator && creator.email ? `${creatorName} <${creator.email}>` : undefined,
-      });
+      try {
+        await sendEmail({
+          to: email,
+          subject: "Pending tender task reminder",
+          text,
+          html,
+          attachments,
+          from: creator && creator.email ? `${creatorName} <${creator.email}>` : undefined,
+        });
+      } catch (err) {
+        console.warn(`Skipping reminder for ${email} due to sender linkage issue:`, err);
+      }
     }
   } catch (error) {
     console.error("Error sending tender task reminders:", error);
@@ -250,6 +257,8 @@ async function sendTenderTaskRemindersForWindow(minMs?: number, maxMs?: number) 
 
 async function sendTenderDeadlineReminders() {
   try {
+    const company = String(process.env.COMPANY_NAME || "").toUpperCase().includes("ANT") ? "ANT_SAVY" : "ONK_GROUP";
+    // Proceed without company-wide delegated fallback; each email must use the tender creator's linked account
     const now = new Date();
     const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -305,14 +314,18 @@ async function sendTenderDeadlineReminders() {
         senderPosition: "Tender Creator",
       });
 
-      await sendEmail({
-        to: tender.creatorEmail,
-        subject,
-        text,
-        html,
-        attachments,
-        from: `${creatorName} <${tender.creatorEmail}>`,
-      });
+      try {
+        await sendEmail({
+          to: tender.creatorEmail,
+          subject,
+          text,
+          html,
+          attachments,
+          from: `${creatorName} <${tender.creatorEmail}>`,
+        });
+      } catch (err) {
+        console.warn(`Skipping deadline reminder for ${tender.creatorEmail} due to sender linkage issue:`, err);
+      }
     }
   } catch (error) {
     console.error("Error sending tender deadline reminders:", error);
