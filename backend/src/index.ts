@@ -17,6 +17,8 @@ import tenderRoutes from "./routes/tenderRoutes";
 import rfqRoutes from "./routes/rfqRoutes";
 import mailRoutes from "./routes/mailRoutes";
 import providerMailRoutes from "./routes/providerMailRoutes";
+import invoiceVariantRoutes from "./routes/invoiceVariantRoutes";
+import invoiceRoutes from "./routes/invoiceRoutes";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import { sendEmail, buildBrandedEmail, getBrandAssets } from "./utils/email";
@@ -37,8 +39,8 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
   maxAge: 3600
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 // Preflight handler for OPTIONS requests
 app.options("*", cors({
@@ -92,6 +94,8 @@ app.use("/api/tenders", tenderRoutes);
 app.use("/api/rfqs", rfqRoutes);
 app.use("/api/mails", mailRoutes);
 app.use("/api/email/providers", providerMailRoutes);
+app.use("/api/invoices", invoiceRoutes);
+app.use("/api/invoice-variants", invoiceVariantRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

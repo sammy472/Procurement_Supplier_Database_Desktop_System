@@ -867,3 +867,63 @@ export const mailAttachmentsSavyRelations = relations(mailAttachmentsSavy, ({ on
     references: [users.id],
   }),
 }));
+
+// Invoices
+export const invoices = pgTable("invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+  quotationNumber: varchar("quotation_number", { length: 50 }),
+  clientName: varchar("client_name", { length: 255 }).notNull(),
+  clientAddress: text("client_address"),
+  clientEmail: varchar("client_email", { length: 255 }),
+  clientPhone: varchar("client_phone", { length: 50 }),
+  baseInvoiceId: varchar("base_invoice_id", { length: 100 }),
+  pricingRuleSnapshot: jsonb("pricing_rule_snapshot"),
+  companyProfileSnapshot: jsonb("company_profile_snapshot"),
+  items: jsonb("items").notNull(),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  taxTotal: decimal("tax_total", { precision: 12, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+  pdfPath: varchar("pdf_path", { length: 500 }),
+  status: varchar("status", { length: 50 }).default("generated"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: uuid("created_by").references(() => users.id),
+});
+
+export const invoicesSavy = pgTable("invoices_savy", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+  quotationNumber: varchar("quotation_number", { length: 50 }),
+  clientName: varchar("client_name", { length: 255 }).notNull(),
+  clientAddress: text("client_address"),
+  clientEmail: varchar("client_email", { length: 255 }),
+  clientPhone: varchar("client_phone", { length: 50 }),
+  baseInvoiceId: varchar("base_invoice_id", { length: 100 }),
+  pricingRuleSnapshot: jsonb("pricing_rule_snapshot"),
+  companyProfileSnapshot: jsonb("company_profile_snapshot"),
+  items: jsonb("items").notNull(),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  taxTotal: decimal("tax_total", { precision: 12, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+  pdfPath: varchar("pdf_path", { length: 500 }),
+  status: varchar("status", { length: 50 }).default("generated"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: uuid("created_by").references(() => users.id),
+});
+
+// Invoice Relations
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  creator: one(users, {
+    fields: [invoices.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const invoicesSavyRelations = relations(invoicesSavy, ({ one }) => ({
+  creator: one(users, {
+    fields: [invoicesSavy.createdBy],
+    references: [users.id],
+  }),
+}));

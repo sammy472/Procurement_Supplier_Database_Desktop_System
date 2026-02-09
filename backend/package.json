@@ -35,8 +35,9 @@
     "puppeteer": "^24.35.0",
     "to-words": "^4.10.0",
     "tslib": "^2.8.1",
+    "typescript": "^5.9.3",
     "uuid": "^9.0.1",
-    "typescript": "^5.9.3"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

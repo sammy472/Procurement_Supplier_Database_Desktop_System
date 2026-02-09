@@ -21,21 +21,47 @@ export const STORAGE_BUCKETS = {
 } as const;
 
 /**
+ * Build a public URL for a stored object path (bucket must be public)
+ */
+export function getPublicUrl(bucket: string, filePath: string): string {
+  if (!supabaseStorage) {
+    throw new Error("Supabase Storage is not configured");
+  }
+  const { data } = supabaseStorage.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+/**
  * Upload a file to Supabase Storage
  */
 export async function uploadFile(
   bucket: string,
   filePath: string,
-  fileBuffer: Buffer,
+  fileBuffer: Buffer | Uint8Array | ArrayBuffer,
   contentType?: string
 ): Promise<{ path: string; url: string }> {
   if (!supabaseStorage) {
     throw new Error("Supabase Storage is not configured");
   }
 
+  const toBlob = (data: Buffer | Uint8Array | ArrayBuffer, type?: string): Blob => {
+    const mime = type || "application/octet-stream";
+    if (typeof Buffer !== "undefined" && Buffer.isBuffer(data)) {
+      return new Blob([data], { type: mime });
+    }
+    if (data instanceof Uint8Array) {
+      return new Blob([data], { type: mime });
+    }
+    if (data instanceof ArrayBuffer) {
+      return new Blob([data], { type: mime });
+    }
+    throw new Error("Unsupported file buffer type");
+  };
+  const blob = toBlob(fileBuffer, contentType);
+
   const { data, error } = await supabaseStorage.storage
     .from(bucket)
-    .upload(filePath, fileBuffer, {
+    .upload(filePath, blob, {
       contentType: contentType || "application/octet-stream",
       upsert: false,
     });

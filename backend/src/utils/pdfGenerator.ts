@@ -5,7 +5,6 @@ import fs from "fs";
 import { ToWords } from 'to-words';
 import formatNum from "format-num"
 const ToWordsConverter = new ToWords({localeCode: 'en-US',});
-import { fileURLToPath } from "url";
 
 // Render runs from project root
 const baseDir = path.join(process.cwd(),"dist","utils","assets");
@@ -769,7 +768,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     });
 
     const buffers: Buffer[] = [];
-    doc.on("data", (chunk) => buffers.push(chunk));
+    doc.on("data", (chunk: Uint8Array) => buffers.push(Buffer.from(chunk)));
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
 

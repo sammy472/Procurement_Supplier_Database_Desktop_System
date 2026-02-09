@@ -24,6 +24,7 @@ import {
   MdRefresh,
   MdMenu,
   MdClose,
+  MdReceipt,
 } from "react-icons/md";
 
 export default function Layout() {
@@ -63,14 +64,16 @@ export default function Layout() {
   };
 
   const navigation = [
-    { name: "Dashboard", path: "/", icon: MdDashboard },
-    { name: "Suppliers", path: "/suppliers", icon: MdBusiness },
-    { name: "Materials", path: "/materials", icon: MdInventory2 },
-    { name: "Quotations", path: "/quotations", icon: MdDescription },
-    { name: "Purchase Orders", path: "/purchase-orders", icon: MdShoppingCart },
-    { name: "Material Requests", path: "/material-requests", icon: MdNotes },
-    { name: "Tenders", path: "/tenders", icon: MdAssignment },
-    { name: "RFQs", path: "/rfqs", icon: MdRequestQuote },
+    { name: "DAS", path: "/", icon: MdDashboard },
+    { name: "SUP", path: "/suppliers", icon: MdBusiness },
+    { name: "MAT", path: "/materials", icon: MdInventory2 },
+    { name: "QUO", path: "/quotations", icon: MdDescription },
+    { name: "PO", path: "/purchase-orders", icon: MdShoppingCart },
+    { name: "MR", path: "/material-requests", icon: MdNotes },
+    { name: "TEN", path: "/tenders", icon: MdAssignment },
+    { name: "RFQ", path: "/rfqs", icon: MdRequestQuote },
+    { name: "INV", path: "/invoices", icon: MdReceipt },
+    { name: "INV GEN", path: "/invoice-generator", icon: MdReceipt },
   ];
 
   const isActive = (path: string) => location.pathname === path;

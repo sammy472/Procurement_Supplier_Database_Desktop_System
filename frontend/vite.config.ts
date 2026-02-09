@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -21,6 +22,10 @@ export default defineConfig({
             if (id.includes("recharts")) return "vendor-recharts";
             if (id.includes("react-toastify")) return "vendor-toastify";
             if (id.includes("react-icons")) return "vendor-icons";
+            if (id.includes("jspdf")) return "vendor-jspdf";
+            if (id.includes("xlsx")) return "vendor-xlsx";
+            if (id.includes("react-hook-form")) return "vendor-form";
+            if (id.includes("date-fns")) return "vendor-date";
             return "vendor";
           }
         },
