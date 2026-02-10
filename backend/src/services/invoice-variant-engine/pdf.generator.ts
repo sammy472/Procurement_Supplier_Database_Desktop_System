@@ -2,10 +2,14 @@ import fs from "fs";
 import path from "path";
 import puppeteer from "puppeteer-core";
 import type { Browser } from "puppeteer-core";
+import puppeteerBundled from "puppeteer";
+import { createRequire } from "module";
 const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
 // Guard against wildcard or misconfigured env path taking precedence inside Puppeteer
-delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
+if ((process.env as any).PUPPETEER_EXECUTABLE_PATH && String(process.env.PUPPETEER_EXECUTABLE_PATH).includes("*")) {
+  delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
+}
 
 function resolveWildcardExecutablePath(pattern: string): string | undefined {
   if (!pattern.includes("*")) {
@@ -71,6 +75,24 @@ function resolveExecutablePath(): string | undefined {
   } catch {
     // ignore
   }
+  // Fallback: try to resolve @sparticuz/chromium module bin directly
+  try {
+    const req = createRequire(__filename);
+    const modPath = req.resolve("@sparticuz/chromium");
+    const modDir = path.dirname(modPath);
+    const binCandidates = [
+      path.join(modDir, "bin", "chromium"),
+      path.join(modDir, "chromium"),
+    ];
+    for (const c of binCandidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  } catch {}
+  // Fallback: try puppeteer bundled executable path if available
+  try {
+    const bundled = puppeteerBundled.executablePath();
+    if (bundled && fs.existsSync(bundled)) return bundled;
+  } catch {}
   return undefined;
 }
 
