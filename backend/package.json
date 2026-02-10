@@ -11,7 +11,8 @@
     "db:migrate": "npx drizzle-kit migrate",
     "db:push": "npx drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "postinstall": "npx puppeteer browsers install chrome@stable"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

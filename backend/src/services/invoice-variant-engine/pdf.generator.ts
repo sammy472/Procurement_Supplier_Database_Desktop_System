@@ -6,7 +6,11 @@ export async function generatePdfFromHtml(html: string, outputDir: string, fileB
   await fs.promises.mkdir(outputDir, { recursive: true });
   const safeBase = String(fileBaseName || "invoice").replace(/[^a-zA-Z0-9._-]/g, "");
   const outputPath = path.join(outputDir, `${safeBase}.pdf`);
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: "new" as any,
+    executablePath: puppeteer.executablePath(),
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  });
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load" });
   const pdfBuffer = await page.pdf({
@@ -20,7 +24,11 @@ export async function generatePdfFromHtml(html: string, outputDir: string, fileB
 }
 
 export async function generatePdfBufferFromHtml(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: "new" as any,
+    executablePath: puppeteer.executablePath(),
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  });
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load" });
   const pdfBuffer = await page.pdf({
