@@ -4,6 +4,8 @@ import puppeteer from "puppeteer";
 import type { Browser } from "puppeteer";
 const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
+// Guard against wildcard or misconfigured env path taking precedence inside Puppeteer
+delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
 
 function resolveWildcardExecutablePath(pattern: string): string | undefined {
   if (!pattern.includes("*")) {

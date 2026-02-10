@@ -95,6 +95,19 @@ app.on("activate", () => {
     }
   });
   
+  // IPC: Open a folder in system file explorer
+  ipcMain.handle("open-folder", async (_event, dirPath) => {
+    if (typeof dirPath !== "string" || !dirPath.trim()) {
+      throw new Error("Invalid folder path");
+    }
+    try {
+      await shell.openPath(dirPath);
+      return true;
+    } catch (e) {
+      throw e;
+    }
+  });
+  
   // IPC: Generate PDF from raw HTML using Electron's printToPDF
   ipcMain.handle("pdf:generateFromHtml", async (_event, html, opts = {}) => {
     if (typeof html !== "string" || !html.trim()) {

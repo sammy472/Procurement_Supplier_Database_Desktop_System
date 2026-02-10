@@ -23,12 +23,6 @@ declare module "*.webp" {
   export default src;
 }
 
-<<<<<<< HEAD
-interface Window {
-  api: {
-    send: (channel: string, data: any) => void;
-    invoke: (channel: string, data: any) => Promise<any>;
-=======
 export {};
 
 declare global {
@@ -39,12 +33,7 @@ declare global {
     };
     api: {
       send: (channel: string, data: any) => void;
+      invoke: (channel: string, ...args: any[]) => Promise<any>;
     };
-    auth: {
-      onCode: (
-        callback: (data: { code: string; provider: "google" | "microsoft" }) => void
-      ) => void;
-    };
->>>>>>> 6b6776360cb38a5baa9164bb506d3d0fcacac94f
   }
 }
