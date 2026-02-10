@@ -13,7 +13,21 @@ function resolveExecutablePath(): string | undefined {
   if (p && fs.existsSync(p)) {
     return p;
   }
-  // Fallback: search node_modules/puppeteer/.local-chromium for linux build
+  try {
+    const renderCache = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
+    const chromeBase = path.join(renderCache, "chrome");
+    if (fs.existsSync(chromeBase)) {
+      const entries = fs.readdirSync(chromeBase, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name.startsWith("linux-"));
+      entries.sort((a, b) => (a.name < b.name ? 1 : -1));
+      for (const dir of entries) {
+        const candidate = path.join(chromeBase, dir.name, "chrome-linux64", "chrome");
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+    }
+  } catch {}
+  // Fallback: search node_modules/puppeteer/.local-chromium
   try {
     const base = path.join(process.cwd(), "node_modules", "puppeteer", ".local-chromium");
     if (fs.existsSync(base)) {
