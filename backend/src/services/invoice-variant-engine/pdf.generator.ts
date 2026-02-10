@@ -34,9 +34,7 @@ function resolveExecutablePath(): string | undefined {
     if (globbed) {
       return globbed;
     }
-    if (envPath.includes("*")) {
-      delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
-    }
+    delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
   }
   const p = puppeteer.executablePath();
   if (p) {
@@ -88,7 +86,7 @@ export async function generatePdfFromHtml(html: string, outputDir: string, fileB
   const execPath = resolveExecutablePath();
   const launchOpts: any = {
     headless: "new" as any,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   };
   if (execPath) {
     launchOpts.executablePath = execPath;
