@@ -94,4 +94,33 @@ app.on("activate", () => {
       shell.openExternal(url);
     }
   });
+  
+  // IPC: Generate PDF from raw HTML using Electron's printToPDF
+  ipcMain.handle("pdf:generateFromHtml", async (_event, html, opts = {}) => {
+    if (typeof html !== "string" || !html.trim()) {
+      throw new Error("Invalid HTML content");
+    }
+    const win = new BrowserWindow({
+      show: false,
+      webPreferences: { offscreen: true },
+    });
+    try {
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+      await win.loadURL(dataUrl);
+      const pdfBuffer = await win.webContents.printToPDF({
+        printBackground: true,
+        pageSize: "A4",
+        marginsType: 0,
+        ...opts,
+      });
+      const outDir = path.join(app.getPath("temp"), "onk-savvy-pdfs");
+      await (await import("fs/promises")).mkdir(outDir, { recursive: true });
+      const filename = `invoice-${Date.now()}.pdf`;
+      const outPath = path.join(outDir, filename);
+      await (await import("fs/promises")).writeFile(outPath, pdfBuffer);
+      return { path: outPath, size: pdfBuffer.length };
+    } finally {
+      if (win && !win.isDestroyed()) win.destroy();
+    }
+  });
 }

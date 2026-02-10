@@ -80,6 +80,23 @@ function resolveExecutablePath(): string | undefined {
   return undefined;
 }
 
+async function getChromiumOptions():
+  Promise<{ executablePath?: string; args?: string[]; headless?: boolean; defaultViewport?: any } | undefined> {
+  try {
+    const chromium: any = await import("@sparticuz/chromium");
+    const executablePath: string | null = await chromium.executablePath();
+    if (executablePath) {
+      return {
+        executablePath,
+        args: Array.isArray(chromium.args) ? chromium.args : undefined,
+        headless: typeof chromium.headless === "boolean" ? chromium.headless : undefined,
+        defaultViewport: chromium.defaultViewport,
+      };
+    }
+  } catch {}
+  return undefined;
+}
+
 async function launchBrowserWithFallback(): Promise<Browser> {
   const args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"];
   const candidates: string[] = [];
@@ -91,6 +108,20 @@ async function launchBrowserWithFallback(): Promise<Browser> {
   }
   const tried: string[] = [];
   let lastError: any;
+  const chromiumOpts = await getChromiumOptions();
+  if (chromiumOpts?.executablePath) {
+    tried.push(chromiumOpts.executablePath);
+    try {
+      return await puppeteer.launch({
+        executablePath: chromiumOpts.executablePath,
+        headless: (chromiumOpts.headless ?? ("new" as any)) as any,
+        args: (chromiumOpts.args && chromiumOpts.args.length ? chromiumOpts.args : args),
+        defaultViewport: chromiumOpts.defaultViewport,
+      });
+    } catch (e) {
+      lastError = e;
+    }
+  }
   for (const execPath of candidates) {
     tried.push(execPath);
     try {

@@ -15,6 +15,7 @@
     "postinstall": "PUPPETEER_SKIP_DOWNLOAD=false PUPPETEER_PRODUCT=chrome node node_modules/puppeteer/install.mjs"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
     "@supabase/supabase-js": "^2.39.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
