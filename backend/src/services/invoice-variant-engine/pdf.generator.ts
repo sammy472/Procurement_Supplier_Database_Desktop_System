@@ -4,15 +4,31 @@ import puppeteer from "puppeteer";
 const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
 
+function resolveExecutablePath(): string | undefined {
+  const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (envPath && fs.existsSync(envPath)) {
+    return envPath;
+  }
+  const p = puppeteer.executablePath();
+  if (p && fs.existsSync(p)) {
+    return p;
+  }
+  return undefined;
+}
+
 export async function generatePdfFromHtml(html: string, outputDir: string, fileBaseName: string): Promise<string> {
   await fs.promises.mkdir(outputDir, { recursive: true });
   const safeBase = String(fileBaseName || "invoice").replace(/[^a-zA-Z0-9._-]/g, "");
   const outputPath = path.join(outputDir, `${safeBase}.pdf`);
-  const browser = await puppeteer.launch({
+  const execPath = resolveExecutablePath();
+  const launchOpts: any = {
     headless: "new" as any,
-    executablePath: puppeteer.executablePath(),
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  });
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  };
+  if (execPath) {
+    launchOpts.executablePath = execPath;
+  }
+  const browser = await puppeteer.launch(launchOpts);
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load" });
   const pdfBuffer = await page.pdf({
@@ -26,11 +42,15 @@ export async function generatePdfFromHtml(html: string, outputDir: string, fileB
 }
 
 export async function generatePdfBufferFromHtml(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
+  const execPath = resolveExecutablePath();
+  const launchOpts: any = {
     headless: "new" as any,
-    executablePath: puppeteer.executablePath(),
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  });
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  };
+  if (execPath) {
+    launchOpts.executablePath = execPath;
+  }
+  const browser = await puppeteer.launch(launchOpts);
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load" });
   const pdfBuffer = await page.pdf({
