@@ -1,9 +1,7 @@
 import fs from "fs";
 import path from "path";
-import puppeteer from "puppeteer-core";
-import type { Browser } from "puppeteer-core";
-import puppeteerBundled from "puppeteer";
-import { createRequire } from "module";
+import puppeteer from "puppeteer";
+import type { Browser } from "puppeteer";
 const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
 // Guard against wildcard or misconfigured env path taking precedence inside Puppeteer
@@ -43,6 +41,11 @@ function resolveExecutablePath(): string | undefined {
     }
     delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
   }
+  // Use Puppeteer's bundled executable if available
+  try {
+    const p = puppeteer.executablePath();
+    if (p && fs.existsSync(p)) return p;
+  } catch {}
   try {
     const renderCache = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
     const chromeBase = path.join(renderCache, "chrome");
@@ -75,24 +78,6 @@ function resolveExecutablePath(): string | undefined {
   } catch {
     // ignore
   }
-  // Fallback: try to resolve @sparticuz/chromium module bin directly
-  try {
-    const req = createRequire(__filename);
-    const modPath = req.resolve("@sparticuz/chromium");
-    const modDir = path.dirname(modPath);
-    const binCandidates = [
-      path.join(modDir, "bin", "chromium"),
-      path.join(modDir, "chromium"),
-    ];
-    for (const c of binCandidates) {
-      if (fs.existsSync(c)) return c;
-    }
-  } catch {}
-  // Fallback: try puppeteer bundled executable path if available
-  try {
-    const bundled = puppeteerBundled.executablePath();
-    if (bundled && fs.existsSync(bundled)) return bundled;
-  } catch {}
   return undefined;
 }
 
@@ -124,20 +109,6 @@ async function launchBrowserWithFallback(): Promise<Browser> {
   }
   const tried: string[] = [];
   let lastError: any;
-  const chromiumOpts = await getChromiumOptions();
-  if (chromiumOpts?.executablePath) {
-    tried.push(chromiumOpts.executablePath);
-    try {
-      return await puppeteer.launch({
-        executablePath: chromiumOpts.executablePath,
-        headless: (chromiumOpts.headless ?? ("new" as any)) as any,
-        args: (chromiumOpts.args && chromiumOpts.args.length ? chromiumOpts.args : args),
-        defaultViewport: chromiumOpts.defaultViewport,
-      });
-    } catch (e) {
-      lastError = e;
-    }
-  }
   for (const execPath of candidates) {
     tried.push(execPath);
     try {
@@ -146,10 +117,16 @@ async function launchBrowserWithFallback(): Promise<Browser> {
       lastError = e;
     }
   }
+  // Try Puppeteer default (bundled Chromium) without explicit executablePath
+  try {
+    return await puppeteer.launch({ headless: "new" as any, args });
+  } catch (e) {
+    lastError = e;
+  }
   const detail = tried.length
     ? `Tried executablePath(s): ${tried.join(", ")}`
-    : "No executablePath candidates found";
-  const err = new Error(`Chromium launch failed: executablePath is required for puppeteer-core. ${detail}`);
+    : "No executablePath candidates found; default launch also failed";
+  const err = new Error(`Chromium launch failed. ${detail}`);
   (err as any).cause = lastError;
   throw err;
 }
