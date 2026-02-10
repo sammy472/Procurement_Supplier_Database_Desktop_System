@@ -133,12 +133,12 @@ async function launchBrowserWithFallback(): Promise<Browser> {
       lastError = e;
     }
   }
-  try {
-    return await puppeteer.launch({ headless: "new" as any, args });
-  } catch (e) {
-    lastError = e;
-  }
-  throw lastError || new Error("Chromium launch failed");
+  const detail = tried.length
+    ? `Tried executablePath(s): ${tried.join(", ")}`
+    : "No executablePath candidates found";
+  const err = new Error(`Chromium launch failed: executablePath is required for puppeteer-core. ${detail}`);
+  (err as any).cause = lastError;
+  throw err;
 }
 
 export async function generatePdfFromHtml(html: string, outputDir: string, fileBaseName: string): Promise<string> {
