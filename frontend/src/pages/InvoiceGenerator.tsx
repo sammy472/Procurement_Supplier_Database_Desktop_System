@@ -245,22 +245,7 @@ export default function InvoiceGenerator() {
           unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
         };
       }).filter(i => i.description && !isNaN(i.unitPrice) && !isNaN(i.quantity));
-      // Prefer Electron IPC if available; fallback to backend API
-      if (window?.api?.invoke) {
-        try {
-          const res = await window.api.invoke("pdf:generateFromHtml", html, { pageSize: "A4", printBackground: true });
-          if (res?.path) {
-            const folder = String(res.path).replace(/[\\/][^\\/]+$/, "");
-            setOutputLocation(folder);
-            setGeneratedUrls([]);
-            setVariantsQueue([]);
-            toast.success("Generated 1 invoice PDF (local)");
-            return;
-          }
-        } catch (e) {
-          console.warn("IPC PDF generation failed, falling back to API:", e);
-        }
-      }
+      // Generate server-side via API
       const result = await invoiceVariantsApi.generateFromHtml(html, invoiceMeta, buyerProfiles, itemsSnapshot);
       if (result.success && result.generatedFiles?.length) {
         toast.success(`Generated ${result.generatedFiles.length} invoice PDF(s)`);

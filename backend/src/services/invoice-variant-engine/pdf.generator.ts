@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import puppeteer from "puppeteer";
-import type { Browser } from "puppeteer";
+import puppeteer from "puppeteer-core";
+import type { Browser } from "puppeteer-core";
 const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
 // Guard against wildcard or misconfigured env path taking precedence inside Puppeteer
@@ -39,6 +39,7 @@ function resolveExecutablePath(): string | undefined {
     }
     delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
   }
+  // puppeteer-core does not bundle Chromium; executablePath may be unset
   const p = puppeteer.executablePath();
   if (p) {
     const direct = fs.existsSync(p) ? p : undefined;
