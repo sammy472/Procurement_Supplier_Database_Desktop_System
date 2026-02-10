@@ -39,15 +39,6 @@ function resolveExecutablePath(): string | undefined {
     }
     delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
   }
-  // puppeteer-core does not bundle Chromium; executablePath may be unset
-  const p = puppeteer.executablePath();
-  if (p) {
-    const direct = fs.existsSync(p) ? p : undefined;
-    const globbed = direct ? direct : resolveWildcardExecutablePath(p);
-    if (globbed) {
-      return globbed;
-    }
-  }
   try {
     const renderCache = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
     const chromeBase = path.join(renderCache, "chrome");
