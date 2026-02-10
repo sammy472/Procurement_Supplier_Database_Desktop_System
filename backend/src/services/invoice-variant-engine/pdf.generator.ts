@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import puppeteer from "puppeteer";
+const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
+process.env.PUPPETEER_CACHE_DIR = cacheDir;
 
 export async function generatePdfFromHtml(html: string, outputDir: string, fileBaseName: string): Promise<string> {
   await fs.promises.mkdir(outputDir, { recursive: true });

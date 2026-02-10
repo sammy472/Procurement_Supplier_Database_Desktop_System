@@ -5,14 +5,14 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npx tsc && cp -r src/utils/assets dist/utils/assets",
+    "build": "npx puppeteer browsers install chrome --cache-dir=/opt/render/.cache/puppeteer && npx tsc && cp -r src/utils/assets dist/utils/assets",
     "start": "node dist/index.js",
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
     "db:push": "npx drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "postinstall": "npx puppeteer browsers install chrome@stable"
+    "postinstall": "npx puppeteer browsers install chrome --cache-dir=/opt/render/.cache/puppeteer"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
