@@ -676,13 +676,13 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   currentY = doc.y - 50;
   // Supplier Info (ONK GROUP LIMITED)
   doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
-  currentY = doc.y + 10;
+  currentY = doc.y + 5;
   doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-  currentY = doc.y + 10;
+  currentY = doc.y + 5;
   doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 10;
+  currentY = doc.y + 5;
   doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-  currentY = doc.y + 10;
+  currentY = doc.y + 5;
   doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
   currentY = doc.y + 10;
 
