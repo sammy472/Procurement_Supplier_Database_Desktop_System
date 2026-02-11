@@ -666,18 +666,25 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   // PROFORMA INVOICE Section
   doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
   
-  currentY = doc.y + 80;
+  currentY = doc.y + 30;
 
-  // Supplier Info (ONK GROUP LIMITED)
-  doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-  currentY = doc.y + 15;
+  // Bill To section
+  doc.fontSize(14).font('Times-Bold').text('BILL TO:', 2, currentY, { align: 'right' });
+  currentY = doc.y + 10;
+  doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
   
+  currentY = doc.y - 10;
+  // Supplier Info (ONK GROUP LIMITED)
+  doc.fontSize(14).font('Times-Bold').text('FROM:', 2, currentY, { align: 'left' });
+  currentY = doc.y + 10;
+  doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
+  currentY = doc.y + 10;
   doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 15;
+  currentY = doc.y + 10;
   doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-  currentY = doc.y + 15;
+  currentY = doc.y + 10;
   doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 15;
+  currentY = doc.y + 10;
 
   // Date - Top right corner
   doc.fontSize(12).font('Times-Bold')
@@ -688,11 +695,8 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
     }),2, currentY, { align: 'left' });
   
   currentY = doc.y + 30;
-
-  // Bill To section
-  doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY);
   
-  currentY = doc.y + 15;
+  currentY = doc.y + 25;
   // First Line Items Table (Summary Table)
   const itemHeight = 35;
   const pageWidth = doc.page.width-4;
