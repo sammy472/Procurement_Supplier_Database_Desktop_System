@@ -669,13 +669,13 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   currentY = doc.y + 30;
 
   // Bill To section
-  doc.fontSize(14).font('Times-Bold').text('BILL TO:', 2, currentY, { align: 'right' });
+  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL TO:', 2, currentY, { align: 'right' });
   currentY = doc.y + 10;
   doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
   
-  currentY = doc.y - 40;
+  currentY = doc.y - 50;
   // Supplier Info (ONK GROUP LIMITED)
-  doc.fontSize(14).font('Times-Bold').text('FROM:', 2, currentY, { align: 'left' });
+  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
   currentY = doc.y + 10;
   doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
   currentY = doc.y + 10;
