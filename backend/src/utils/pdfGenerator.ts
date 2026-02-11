@@ -658,7 +658,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
 
   //Insert Logo Image
   try {
-    doc.image(logoPath, 2, currentY, { width: 100 });
+    doc.image(logoPath, 2, currentY, { width: 100 ,height: 50});
   } catch (error) {
     console.warn('Logo image not found, continuing without it');
   }
