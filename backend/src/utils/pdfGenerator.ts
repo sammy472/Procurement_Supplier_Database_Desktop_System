@@ -668,16 +668,19 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   
   currentY = doc.y + 30;
 
+  const before = doc.y;
   // Bill To section
   doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL TO:', 2, currentY, { align: 'right' });
   currentY = doc.y + 10;
-  doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
+  doc.fontSize(12).font('Times-Bold').fillColor("black").text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
   
-  currentY = doc.y - 50;
+  const after = doc.y;
+
+  currentY = doc.y - (after - before);
   // Supplier Info (ONK GROUP LIMITED)
   doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
   currentY = doc.y + 5;
-  doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
+  doc.fontSize(12).font('Times-Bold').fillColor("black").text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
   currentY = doc.y + 5;
   doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
   currentY = doc.y + 5;
