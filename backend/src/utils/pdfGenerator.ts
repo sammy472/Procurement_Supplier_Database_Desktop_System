@@ -676,7 +676,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   
   const after = doc.y;
 
-  currentY = doc.y - (after - before);
+  currentY = doc.y - (after - before) - 10;
   // Supplier Info (ONK GROUP LIMITED)
   doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
   currentY = doc.y + 5;
