@@ -2,12 +2,7 @@ import fs from "fs";
 import path from "path";
 import puppeteer from "puppeteer";
 import type { Browser } from "puppeteer";
-const cacheDir = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
-process.env.PUPPETEER_CACHE_DIR = cacheDir;
-// Guard against wildcard or misconfigured env path taking precedence inside Puppeteer
-if ((process.env as any).PUPPETEER_EXECUTABLE_PATH && String(process.env.PUPPETEER_EXECUTABLE_PATH).includes("*")) {
-  delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
-}
+// Avoid relying on runtime env variables; prefer Puppeteer's own resolution and cache scanning
 
 function resolveWildcardExecutablePath(pattern: string): string | undefined {
   if (!pattern.includes("*")) {
@@ -32,22 +27,13 @@ function resolveWildcardExecutablePath(pattern: string): string | undefined {
 }
 
 function resolveExecutablePath(): string | undefined {
-  const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  if (envPath) {
-    const direct = fs.existsSync(envPath) ? envPath : undefined;
-    const globbed = direct ? direct : resolveWildcardExecutablePath(envPath);
-    if (globbed) {
-      return globbed;
-    }
-    delete (process.env as any).PUPPETEER_EXECUTABLE_PATH;
-  }
   // Use Puppeteer's bundled executable if available
   try {
     const p = puppeteer.executablePath();
     if (p && fs.existsSync(p)) return p;
   } catch {}
   try {
-    const renderCache = process.env.PUPPETEER_CACHE_DIR || "/opt/render/.cache/puppeteer";
+    const renderCache = "/opt/render/.cache/puppeteer";
     const chromeBase = path.join(renderCache, "chrome");
     if (fs.existsSync(chromeBase)) {
       const entries = fs.readdirSync(chromeBase, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name.startsWith("linux-"));
@@ -57,6 +43,17 @@ function resolveExecutablePath(): string | undefined {
         const c2 = path.join(chromeBase, dir.name, "chrome-linux", "chrome");
         if (fs.existsSync(c1)) return c1;
         if (fs.existsSync(c2)) return c2;
+      }
+    }
+    const headlessBase = path.join(renderCache, "chrome-headless-shell");
+    if (fs.existsSync(headlessBase)) {
+      const entries = fs.readdirSync(headlessBase, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name.startsWith("linux-"));
+      entries.sort((a, b) => (a.name < b.name ? 1 : -1));
+      for (const dir of entries) {
+        const h1 = path.join(headlessBase, dir.name, "chrome-headless-shell-linux64", "chrome-headless-shell");
+        const h2 = path.join(headlessBase, dir.name, "chrome-headless-shell-linux", "chrome-headless-shell");
+        if (fs.existsSync(h1)) return h1;
+        if (fs.existsSync(h2)) return h2;
       }
     }
   } catch {}
@@ -99,7 +96,13 @@ async function getChromiumOptions():
 }
 
 async function launchBrowserWithFallback(): Promise<Browser> {
-  const args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"];
+  const args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--no-zygote"];
+  // Prefer Puppeteer's default first (no env required)
+  try {
+    return await puppeteer.launch({ headless: "new" as any, args });
+  } catch {
+    // fall through to explicit executable resolution
+  }
   const candidates: string[] = [];
   const resolved = resolveExecutablePath();
   if (resolved) candidates.push(resolved);

@@ -245,8 +245,17 @@ export default function InvoiceGenerator() {
           unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
         };
       }).filter(i => i.description && !isNaN(i.unitPrice) && !isNaN(i.quantity));
-      // Generate server-side via API
-      const result = await invoiceVariantsApi.generateFromHtml(html, invoiceMeta, buyerProfiles, itemsSnapshot);
+      // Generate client-side PDF via Puppeteer in Electron main
+      const gen: { base64: string; size: number } = await (window as any).api.invoke("pdf:generateWithPuppeteer", html, {});
+      const filename = (invoiceNumber ? `invoice-${invoiceNumber}.pdf` : `invoice-${Date.now()}.pdf`);
+      // Convert base64 to Blob
+      const byteChars = atob(gen.base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      // Upload to server-side for Supabase persistence
+      const result = await invoiceVariantsApi.uploadClientPdf(blob, filename, invoiceMeta, buyerProfiles, itemsSnapshot);
       if (result.success && result.generatedFiles?.length) {
         toast.success(`Generated ${result.generatedFiles.length} invoice PDF(s)`);
         const first = result.generatedFiles[0];

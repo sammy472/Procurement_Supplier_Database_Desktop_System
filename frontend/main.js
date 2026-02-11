@@ -136,4 +136,27 @@ app.on("activate", () => {
       if (win && !win.isDestroyed()) win.destroy();
     }
   });
+  
+  // IPC: Generate PDF from raw HTML using Puppeteer (client-side)
+  ipcMain.handle("pdf:generateWithPuppeteer", async (_event, html, opts = {}) => {
+    if (typeof html !== "string" || !html.trim()) {
+      throw new Error("Invalid HTML content");
+    }
+    const { default: puppeteer } = await import("puppeteer");
+    const args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--no-zygote"];
+    const browser = await puppeteer.launch({ headless: "new", args });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: "load" });
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
+        ...opts,
+      });
+      return { base64: Buffer.from(pdfBuffer).toString("base64"), size: pdfBuffer.length };
+    } finally {
+      await browser.close();
+    }
+  });
 }

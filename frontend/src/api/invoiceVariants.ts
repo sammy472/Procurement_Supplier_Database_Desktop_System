@@ -21,4 +21,19 @@ export const invoiceVariantsApi = {
     });
     return response.data;
   },
+  uploadClientPdf: async (
+    file: Blob,
+    filename: string,
+    invoiceMeta: any,
+    buyerProfiles?: any[],
+    items?: any[]
+  ): Promise<GenerateVariantsResponse> => {
+    const formData = new FormData();
+    formData.append("file", file, filename);
+    formData.append("invoiceMeta", JSON.stringify(invoiceMeta));
+    formData.append("buyerProfiles", JSON.stringify(buyerProfiles || []));
+    formData.append("items", JSON.stringify(items || []));
+    const response = await apiClient.post("/invoice-variants/upload", formData);
+    return response.data;
+  },
 };
