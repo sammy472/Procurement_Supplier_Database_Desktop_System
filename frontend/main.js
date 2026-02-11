@@ -142,21 +142,52 @@ app.on("activate", () => {
     if (typeof html !== "string" || !html.trim()) {
       throw new Error("Invalid HTML content");
     }
-    const { default: puppeteer } = await import("puppeteer");
-    const args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--no-zygote"];
-    const browser = await puppeteer.launch({ headless: "new", args });
+    let puppeteer;
+    let useElectron = false;
     try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: "load" });
-      const pdfBuffer = await page.pdf({
-        format: "A4",
+      // Attempt dynamic import; fallback to Electron printToPDF if unavailable
+      ({ default: puppeteer } = await import("puppeteer"));
+    } catch {
+      useElectron = true;
+    }
+    if (!useElectron) {
+      try {
+        const args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--no-zygote"];
+        const browser = await puppeteer.launch({ headless: "new", args });
+        try {
+          const page = await browser.newPage();
+          await page.setContent(html, { waitUntil: "load" });
+          const pdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
+            ...opts,
+          });
+          return { base64: Buffer.from(pdfBuffer).toString("base64"), size: pdfBuffer.length };
+        } finally {
+          await browser.close();
+        }
+      } catch {
+        useElectron = true;
+      }
+    }
+    // Fallback: use Electron's printToPDF, return base64 (no file writes)
+    const win = new BrowserWindow({
+      show: false,
+      webPreferences: { offscreen: true },
+    });
+    try {
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+      await win.loadURL(dataUrl);
+      const pdfBuffer = await win.webContents.printToPDF({
         printBackground: true,
-        margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
+        pageSize: "A4",
+        marginsType: 0,
         ...opts,
       });
       return { base64: Buffer.from(pdfBuffer).toString("base64"), size: pdfBuffer.length };
     } finally {
-      await browser.close();
+      if (win && !win.isDestroyed()) win.destroy();
     }
   });
 }
