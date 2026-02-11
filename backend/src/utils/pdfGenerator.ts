@@ -508,7 +508,7 @@ export const generatePurchaseOrderPDFNEW = (
   doc.end();
 };
 
-export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response, inline: boolean = false) => {
+export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response, inline: boolean = false,company:string) => {
   const doc = new PDFDocument({ 
     margin: 20,
     size: 'A4',
@@ -538,9 +538,9 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   doc.registerFont('Times-Roman', 'Times-Roman');
   doc.registerFont('Times-Bold', 'Times-Bold');
 
-  const bannerPath = resolveAssetPath("banner");
-  const stampPath = resolveAssetPath("stamp");
-  const logoPath = resolveAssetPath("logo");
+  const bannerPath = resolveAssetPath("banner",company);
+  const stampPath = resolveAssetPath("stamp",company);
+  const logoPath = resolveAssetPath("logo",company);
 
   // Starting position
   let currentY = 0;
@@ -673,7 +673,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   currentY = doc.y + 10;
   doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
   
-  currentY = doc.y - 10;
+  currentY = doc.y - 40;
   // Supplier Info (ONK GROUP LIMITED)
   doc.fontSize(14).font('Times-Bold').text('FROM:', 2, currentY, { align: 'left' });
   currentY = doc.y + 10;

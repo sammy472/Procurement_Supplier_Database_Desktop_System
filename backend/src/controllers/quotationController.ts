@@ -325,7 +325,7 @@ export const exportQuotationPDF = async (req: AuthRequest, res: Response) => {
     }
 
     const quotation = quotations[0];
-    generateQuotationPDFNEW(quotation as any, res, inline);
+    generateQuotationPDFNEW(quotation as any, res, inline,req.user?.company!);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
