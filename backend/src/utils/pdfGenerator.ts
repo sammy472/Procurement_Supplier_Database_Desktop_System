@@ -449,17 +449,24 @@ export const generatePurchaseOrderPDFNEW = (
     ];
   });
   if (lineItems.length > 0) {
-    doc.table({
-      columnStyles: (i: number) =>
-        [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15][i],
-      rowStyles: {
-        minHeight: itemHeight - 5,
-        padding: 5,
-        align: { x: "center", y: "bottom" },
-        backgroundColor: "#F8F8F8",
-      },
-    }).row(["No.", "Description", "Qty", `Unit Price (${ccy})`, `Total (${ccy})`]);
+    const renderHeader = () => {
+      doc.table({
+        columnStyles: (i: number) =>
+          [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15][i],
+        rowStyles: {
+          minHeight: itemHeight - 5,
+          padding: 5,
+          align: { x: "center", y: "bottom" },
+          backgroundColor: "#F8F8F8",
+        },
+      }).row(["No.", "Description", "Qty", `Unit Price (${ccy})`, `Total (${ccy})`]);
+    };
+    renderHeader();
     lineItems.forEach((row) => {
+      if (doc.y > doc.page.height - 120) {
+        doc.addPage();
+        renderHeader();
+      }
       doc.table({
         columnStyles: [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15],
         rowStyles: {
@@ -477,6 +484,9 @@ export const generatePurchaseOrderPDFNEW = (
   const discountAmount = toNum(po.discount);
   const vatRate = toNum(po.vatRate);
   const taxable = Math.max(subtotal - discountAmount, 0);
+  if (doc.y > doc.page.height - 200) {
+    doc.addPage();
+  }
   const totals: Array<{ label: string; value: string }> = [
     { label: `SUBTOTAL (${ccy})`, value: formatNum(subtotal.toFixed(2)) },
     { label: `DISCOUNT (${ccy})`, value: formatNum(discountAmount.toFixed(2)) },
@@ -726,21 +736,27 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   let testLineItems: any[] = parseLineItems(quotation.lineItems);
   testLineItems = testLineItems.map(item => [item.description, item.quantity, formatNum(parseFloat(item.unitPrice?.toString()).toFixed(2)), formatNum(parseFloat(item.total?.toString()).toFixed(2))]);
 
-  doc.table({
-    columnStyles: (i)=>{
-      return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
-    },
-    rowStyles:{
-      backgroundColor: '#D3D3D3',
-      height: itemHeight + 30,
-      padding: 5,
-      align:{x: 'center', y: 'top' },
-    }
-  }).row(['No.', 'MATERIAL', 'QTY', `UNIT PRICE\n(${quotation.currency})`, `TOTAL\n(${quotation.currency})`]);
+  const renderHeader = () => {
+    doc.table({
+      columnStyles: (i)=>{
+        return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
+      },
+      rowStyles:{
+        backgroundColor: '#D3D3D3',
+        height: itemHeight + 30,
+        padding: 5,
+        align:{x: 'center', y: 'top' },
+      }
+    }).row(['No.', 'MATERIAL', 'QTY', `UNIT PRICE\n(${quotation.currency})`, `TOTAL\n(${quotation.currency})`]);
+  };
+  renderHeader();
 
   doc.fontSize(12).font('Times-Roman');
-  //doc.table({columnStyles: {textOptions: {align: 'right'}}}); 
   testLineItems.forEach((item, index) => {
+    if (doc.y > doc.page.height - 200) {
+      doc.addPage();
+      renderHeader();
+    }
     doc.table({
       columnStyles: [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15],
       rowStyles:{
@@ -748,11 +764,11 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         padding: 5,
         align:{x: 'right', y: 'bottom' }
       }
-    }).row([index, ...item]);
+    }).row([index + 1, ...item]);
   });
 
   //Taxation and Total Amount
-  currentY = doc.y + (testLineItems.length + 1) * itemHeight + 20;
+  currentY = doc.y + 20;
   doc.fontSize(12).font('Times-Bold');
   const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
   const additionalInfoArray = [
@@ -766,6 +782,9 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
 
 
   doc.fontSize(12).font('Times-Bold');
+  if (doc.y > doc.page.height - 200) {
+    doc.addPage();
+  }
   additionalInfoArray.forEach(info => {
     doc.table({
       columnStyles: [pageWidth * 0.85, pageWidth * 0.15],
@@ -979,7 +998,24 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     }).row(['No.', 'MATERIAL', 'QTY', `UNIT PRICE\n(${quotation.currency})`, `TOTAL\n(${quotation.currency})`]);
 
     doc.fontSize(12).font('Times-Roman');
+    const renderHeader = () => {
+      doc.table({
+        columnStyles: (i)=>{
+          return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
+        },
+        rowStyles:{
+          backgroundColor: '#D3D3D3',
+          height: itemHeight + 30,
+          padding: 5,
+          align:{x: 'center', y: 'top' },
+        }
+      }).row(['No.', 'MATERIAL', 'QTY', `UNIT PRICE\n(${quotation.currency})`, `TOTAL\n(${quotation.currency})`]);
+    };
     testLineItems.forEach((item, index) => {
+      if (doc.y > doc.page.height - 200) {
+        doc.addPage();
+        renderHeader();
+      }
       doc.table({
         columnStyles: [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15],
         rowStyles:{
@@ -987,11 +1023,11 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
           padding: 5,
           align:{x: 'right', y: 'bottom' }
         }
-      }).row([index, ...item]);
+      }).row([index + 1, ...item]);
     });
 
     // Taxation and Total Amount
-    currentY += (testLineItems.length + 1) * itemHeight + 20;
+    currentY = doc.y + 20;
     doc.fontSize(12).font('Times-Bold');
     const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
     const additionalInfoArray = [
@@ -1004,6 +1040,9 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
       { label: `TOTAL AMOUNT (${quotation.currency})`, value: formatNum(quotation.total) }
     ];
 
+    if (doc.y > doc.page.height - 200) {
+      doc.addPage();
+    }
     additionalInfoArray.forEach(info => {
       doc.table({
         columnStyles: [pageWidth * 0.85, pageWidth * 0.15],
