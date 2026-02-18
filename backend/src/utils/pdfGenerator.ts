@@ -430,26 +430,36 @@ export const generatePurchaseOrderPDFNEW = (
   // Table
   const itemHeight = 30;
   const pageWidth = doc.page.width - 4;
-  const lineItems = parseLineItems(po.lineItems).map((li) => [
-    li.description,
-    li.quantity,
-    parseFloat(li.unitPrice?.toString()).toFixed(2),
-    parseFloat(li.total?.toString()).toFixed(2),
-  ]);
+  const toNum = (v: any) => {
+    const n = parseFloat(String(v ?? "0").replace(/,/g, "").replace(/[^\d.-]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const lineItems = parseLineItems(po.lineItems).map((li, idx) => {
+    const qty = toNum(li.quantity);
+    const unit = toNum(li.unitPrice);
+    const tot = li.total != null ? toNum(li.total) : qty * unit;
+    return [
+      idx + 1,
+      li.description,
+      qty,
+      unit.toFixed(2),
+      tot.toFixed(2),
+    ];
+  });
   if (lineItems.length > 0) {
     doc.table({
       columnStyles: (i: number) =>
-        [pageWidth * 0.55, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15][i],
+        [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15][i],
       rowStyles: {
         minHeight: itemHeight - 5,
         padding: 5,
         align: { x: "center", y: "bottom" },
         backgroundColor: "#F8F8F8",
       },
-    }).row(["Description", "Qty", "Unit Price", "Total"]);
+    }).row(["No.", "Description", "Qty", "Unit Price", "Total"]);
     lineItems.forEach((row) => {
       doc.table({
-        columnStyles: [pageWidth * 0.55, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15],
+        columnStyles: [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15],
         rowStyles: {
           minHeight: itemHeight - 5,
           padding: 5,
@@ -463,16 +473,16 @@ export const generatePurchaseOrderPDFNEW = (
   // Totals
   const currency = po as any;
   const ccy = currency.currency || "GHC";
-  const subtotal = parseFloat(po.subtotal || "0");
-  const discountAmount = parseFloat(po.discount || "0");
-  const vatRate = parseFloat(po.vatRate || "0");
+  const subtotal = toNum(po.subtotal);
+  const discountAmount = toNum(po.discount);
+  const vatRate = toNum(po.vatRate);
   const taxable = Math.max(subtotal - discountAmount, 0);
   const totals: Array<{ label: string; value: string }> = [
     { label: `SUBTOTAL (${ccy})`, value: subtotal.toFixed(2) },
     { label: `DISCOUNT (${ccy})`, value: discountAmount.toFixed(2) },
     { label: `TAXABLE AMOUNT (${ccy})`, value: taxable.toFixed(2) },
-    { label: `VAT (${vatRate.toFixed(2)}%)`, value: parseFloat(po.vatAmount || "0").toFixed(2) },
-    { label: `TOTAL (${ccy})`, value: parseFloat(po.total || "0").toFixed(2) },
+    { label: `VAT (${vatRate.toFixed(2)}%)`, value: toNum(po.vatAmount).toFixed(2) },
+    { label: `TOTAL (${ccy})`, value: toNum(po.total).toFixed(2) },
   ];
 
   doc.fontSize(12).font("Times-Bold");
