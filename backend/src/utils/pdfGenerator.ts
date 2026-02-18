@@ -511,13 +511,25 @@ export const generatePurchaseOrderPDFNEW = (
   currentY = doc.y + 20;
 
   // Payment terms and expected delivery
+  if (currentY > doc.page.height - 180) {
+    doc.addPage();
+    currentY = 20;
+  }
   doc.fontSize(10).font("Times-Bold").text("Payment Terms:", 2, currentY);
   currentY += 15;
+  if (currentY > doc.page.height - 120) {
+    doc.addPage();
+    currentY = 20;
+  }
   doc.fontSize(10).font("Times-Roman").text(po.paymentTerms || "N/A", 2, currentY, {
     width: pageWidth * 0.9,
   });
   currentY += 20;
   if (po.expectedDeliveryDate) {
+    if (currentY > doc.page.height - 60) {
+      doc.addPage();
+      currentY = 20;
+    }
     doc
       .fontSize(10)
       .font("Times-Bold")
@@ -530,6 +542,10 @@ export const generatePurchaseOrderPDFNEW = (
   }
 
   // Stamp
+  if (currentY > doc.page.height - 140) {
+    doc.addPage();
+    currentY = 20;
+  }
   try {
     doc.image(stampPath, 2, currentY, { width: 150, height: 100 });
   } catch {}
@@ -729,6 +745,10 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   currentY = doc.y + 30;
   
   currentY = doc.y + 25;
+  if (currentY > doc.page.height - 220) {
+    doc.addPage();
+    currentY = 20;
+  }
   // First Line Items Table (Summary Table)
   const itemHeight = 35;
   const pageWidth = doc.page.width-4;
@@ -769,6 +789,10 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
 
   //Taxation and Total Amount
   currentY = doc.y + 20;
+  if (currentY > doc.page.height - 220) {
+    doc.addPage();
+    currentY = 20;
+  }
   doc.fontSize(12).font('Times-Bold');
   const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
   const additionalInfoArray = [
@@ -848,7 +872,11 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     doc.fontSize(11).font('Times-Bold')
       .text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
     
-    currentY = doc.y + 15;  
+    currentY = doc.y + 15;
+    if (currentY > doc.page.height - 220) {
+      doc.addPage();
+      currentY = 20;
+    }
     
     // Process multi-line address
     const clientLines = quotation.clientAddress?.split('\n') || [];
@@ -979,6 +1007,10 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     doc.moveDown(2);
 
     // Summary Table
+    if (currentY > doc.page.height - 220) {
+      doc.addPage();
+      currentY = 20;
+    }
     const itemHeight = 35;
     const pageWidth = doc.page.width-4;
 
@@ -1028,6 +1060,10 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
 
     // Taxation and Total Amount
     currentY = doc.y + 20;
+    if (currentY > doc.page.height - 220) {
+      doc.addPage();
+      currentY = 20;
+    }
     doc.fontSize(12).font('Times-Bold');
     const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
     const additionalInfoArray = [
