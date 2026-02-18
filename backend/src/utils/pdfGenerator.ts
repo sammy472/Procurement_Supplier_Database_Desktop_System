@@ -428,40 +428,37 @@ export const generatePurchaseOrderPDFNEW = (
   } catch {}
 
   // Table
-  const itemHeight = 22;
-  const leftX = 2;
-  const usableWidth = doc.page.width - leftX * 2;
-  const columns = {
-    description: { x: leftX, width: usableWidth * 0.55 },
-    quantity: { x: leftX + usableWidth * 0.55, width: usableWidth * 0.15 },
-    unitPrice: { x: leftX + usableWidth * 0.70, width: usableWidth * 0.15 },
-    total: { x: leftX + usableWidth * 0.85, width: usableWidth * 0.15 },
-  } as const;
-  const itemsArr = parseLineItems(po.lineItems);
-  doc.fontSize(10).font("Times-Bold");
-  doc.text("Description", columns.description.x, currentY, { width: columns.description.width });
-  doc.text("Qty", columns.quantity.x, currentY, { width: columns.quantity.width, align: "right" });
-  doc.text("Unit Price", columns.unitPrice.x, currentY, { width: columns.unitPrice.width, align: "right" });
-  doc.text("Total", columns.total.x, currentY, { width: columns.total.width, align: "right" });
-  doc.moveTo(leftX, currentY + 14).lineTo(leftX + usableWidth, currentY + 14).stroke();
-  currentY += 18;
-  doc.fontSize(10).font("Times-Roman");
-  for (const it of itemsArr) {
-    if (currentY > doc.page.height - 150) {
-      doc.addPage();
-      currentY = 50;
-      doc.fontSize(10).font("Times-Roman");
-    }
-    const qty = typeof it.quantity === "number" ? it.quantity : parseFloat(String(it.quantity || 0)) || 0;
-    const unitPrice = typeof it.unitPrice === "number" ? it.unitPrice : parseFloat(String(it.unitPrice || 0)) || 0;
-    const total = typeof it.total === "number" ? it.total : parseFloat(String(it.total || qty * unitPrice)) || 0;
-    doc.text(String(it.description || ""), columns.description.x, currentY, { width: columns.description.width });
-    doc.text(qty.toString(), columns.quantity.x, currentY, { width: columns.quantity.width, align: "right" });
-    doc.text(unitPrice.toFixed(2), columns.unitPrice.x, currentY, { width: columns.unitPrice.width, align: "right" });
-    doc.text(total.toFixed(2), columns.total.x, currentY, { width: columns.total.width, align: "right" });
-    currentY += itemHeight;
+  const itemHeight = 30;
+  const pageWidth = doc.page.width - 4;
+  const lineItems = parseLineItems(po.lineItems).map((li) => [
+    li.description,
+    li.quantity,
+    parseFloat(li.unitPrice?.toString()).toFixed(2),
+    parseFloat(li.total?.toString()).toFixed(2),
+  ]);
+  if (lineItems.length > 0) {
+    doc.table({
+      columnStyles: (i: number) =>
+        [pageWidth * 0.55, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15][i],
+      rowStyles: {
+        minHeight: itemHeight - 5,
+        padding: 5,
+        align: { x: "center", y: "bottom" },
+        backgroundColor: "#F8F8F8",
+      },
+    }).row(["Description", "Qty", "Unit Price", "Total"]);
+    lineItems.forEach((row) => {
+      doc.table({
+        columnStyles: [pageWidth * 0.55, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15],
+        rowStyles: {
+          minHeight: itemHeight - 5,
+          padding: 5,
+          align: { x: "center", y: "bottom" },
+        },
+      }).row(row as any);
+    });
+    currentY = doc.y + 10;
   }
-  currentY += 4;
 
   // Totals
   const currency = po as any;
@@ -470,38 +467,34 @@ export const generatePurchaseOrderPDFNEW = (
   const discountAmount = parseFloat(po.discount || "0");
   const vatRate = parseFloat(po.vatRate || "0");
   const taxable = Math.max(subtotal - discountAmount, 0);
-  const rightEdge = leftX + usableWidth;
-  const labelX = rightEdge - 150;
-  const valX = rightEdge;
-  const valWidth = 150;
-  const startY = currentY + 10;
-  doc.fontSize(11).font("Times-Roman");
-  doc.text(`Subtotal (${ccy})`, labelX, startY, { width: valWidth, align: "right" });
-  doc.text(subtotal.toFixed(2), valX, startY, { width: valWidth, align: "right" });
-  let rowY = startY + 16;
-  if (discountAmount > 0) {
-    doc.text(`Discount (${ccy})`, labelX, rowY, { width: valWidth, align: "right" });
-    doc.text(discountAmount.toFixed(2), valX, rowY, { width: valWidth, align: "right" });
-    rowY += 16;
-  }
-  doc.text(`Taxable Amount (${ccy})`, labelX, rowY, { width: valWidth, align: "right" });
-  doc.text(taxable.toFixed(2), valX, rowY, { width: valWidth, align: "right" });
-  rowY += 16;
-  if (vatRate > 0) {
-    doc.text(`VAT (${vatRate.toFixed(2)}%)`, labelX, rowY, { width: valWidth, align: "right" });
-    doc.text(parseFloat(po.vatAmount || "0").toFixed(2), valX, rowY, { width: valWidth, align: "right" });
-    rowY += 16;
-  }
+  const totals: Array<{ label: string; value: string }> = [
+    { label: `SUBTOTAL (${ccy})`, value: subtotal.toFixed(2) },
+    { label: `DISCOUNT (${ccy})`, value: discountAmount.toFixed(2) },
+    { label: `TAXABLE AMOUNT (${ccy})`, value: taxable.toFixed(2) },
+    { label: `VAT (${vatRate.toFixed(2)}%)`, value: parseFloat(po.vatAmount || "0").toFixed(2) },
+    { label: `TOTAL (${ccy})`, value: parseFloat(po.total || "0").toFixed(2) },
+  ];
+
   doc.fontSize(12).font("Times-Bold");
-  doc.text(`Total (${ccy})`, labelX, rowY + 4, { width: valWidth, align: "right" });
-  doc.text(parseFloat(po.total || "0").toFixed(2), valX, rowY + 4, { width: valWidth, align: "right" });
-  currentY = rowY + 28;
+  totals.forEach((t) => {
+    doc.table({
+      columnStyles: (i: number) => [pageWidth * 0.85, pageWidth * 0.15][i],
+      rowStyles: {
+        minHeight: itemHeight - 5,
+        padding: 5,
+        align: { x: "center", y: "bottom" },
+        backgroundColor: "#F0F0F0",
+      },
+    }).row([t.label.trim(), t.value]);
+  });
+
+  currentY = doc.y + 20;
 
   // Payment terms and expected delivery
   doc.fontSize(10).font("Times-Bold").text("Payment Terms:", 2, currentY);
   currentY += 15;
   doc.fontSize(10).font("Times-Roman").text(po.paymentTerms || "N/A", 2, currentY, {
-    width: usableWidth * 0.9,
+    width: pageWidth * 0.9,
   });
   currentY += 20;
   if (po.expectedDeliveryDate) {
