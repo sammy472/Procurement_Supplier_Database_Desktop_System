@@ -89,4 +89,29 @@ export const providerMailsApi = {
       throw new Error(handleApiError(error));
     }
   },
+  listAttachments: async (provider: Provider, messageId: string): Promise<Array<{ id: string; filename: string; size: number; mimeType: string }>> => {
+    try {
+      const res = await apiClient.get<{ attachments: Array<{ id: string; filename: string; size: number; mimeType: string }> }>(
+        `/email/providers/${provider}/messages/${messageId}/attachments`
+      );
+      return res.data.attachments || [];
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  },
+  downloadAttachment: async (provider: Provider, messageId: string, attId: string): Promise<{ blob: Blob; filename: string; mimeType: string }> => {
+    try {
+      const url = `/email/providers/${provider}/messages/${messageId}/attachments/${attId}`;
+      const res = await apiClient.get<ArrayBuffer>(url, { responseType: "arraybuffer" });
+      const disposition = String(res.headers["content-disposition"] || "");
+      let filename = "attachment";
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      if (match && match[1]) filename = match[1];
+      const mimeType = String(res.headers["content-type"] || "application/octet-stream");
+      const blob = new Blob([res.data], { type: mimeType });
+      return { blob, filename, mimeType };
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  },
 };

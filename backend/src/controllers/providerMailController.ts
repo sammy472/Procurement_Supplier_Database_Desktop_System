@@ -576,3 +576,96 @@ export const getLinkedAccounts = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const listAttachments = async (req: AuthRequest, res: Response) => {
+  try {
+    const { provider, id } = req.params as any;
+    const acc = await getFreshAccount(req.user!.id, provider, req.user?.company);
+    if (provider === "google") {
+      const url = GOOGLE_GMAIL_GET(id) + "?format=full";
+      const data = await fetchJson<any>(url, { headers: { Authorization: `Bearer ${acc.accessToken}` } });
+      const out: Array<{ id: string; filename: string; size: number; mimeType: string }> = [];
+      const walk = (p: any) => {
+        if (!p) return;
+        const name = p.filename || "";
+        const body = p.body || {};
+        if (name && body && body.attachmentId) {
+          out.push({
+            id: body.attachmentId,
+            filename: name,
+            size: Number(body.size || 0),
+            mimeType: String(p.mimeType || "application/octet-stream"),
+          });
+        }
+        if (Array.isArray(p.parts)) {
+          for (const sub of p.parts) walk(sub);
+        }
+      };
+      walk(data.payload);
+      return res.json({ attachments: out });
+    }
+    if (provider === "microsoft") {
+      const url = `https://graph.microsoft.com/v1.0/me/messages/${id}/attachments`;
+      const data = await fetchJson<any>(url, { headers: { Authorization: `Bearer ${acc.accessToken}` } });
+      const out = (data.value || []).map((a: any) => ({
+        id: a.id,
+        filename: a.name || "attachment",
+        size: Number(a.size || 0),
+        mimeType: String(a.contentType || "application/octet-stream"),
+      }));
+      return res.json({ attachments: out });
+    }
+    return res.status(400).json({ error: "Unsupported provider" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const downloadAttachment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { provider, id, attId } = req.params as any;
+    const acc = await getFreshAccount(req.user!.id, provider, req.user?.company);
+    if (provider === "google") {
+      const meta = await fetchJson<any>(GOOGLE_GMAIL_GET(id) + "?format=full", { headers: { Authorization: `Bearer ${acc.accessToken}` } });
+      let filename = "attachment";
+      let mime = "application/octet-stream";
+      const find = (p: any): boolean => {
+        if (!p) return false;
+        const body = p.body || {};
+        if (body && body.attachmentId === attId) {
+          filename = p.filename || filename;
+          mime = p.mimeType || mime;
+          return true;
+        }
+        if (Array.isArray(p.parts)) {
+          for (const sub of p.parts) {
+            if (find(sub)) return true;
+          }
+        }
+        return false;
+      };
+      find(meta.payload);
+      const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/attachments/${attId}`;
+      const att = await fetchJson<any>(url, { headers: { Authorization: `Bearer ${acc.accessToken}` } });
+      const base64 = String(att.data || "");
+      const bin = Buffer.from(base64.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+      res.setHeader("Content-Type", mime);
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      return res.end(bin);
+    }
+    if (provider === "microsoft") {
+      const url = `https://graph.microsoft.com/v1.0/me/messages/${id}/attachments/${attId}`;
+      const a = await fetchJson<any>(url, { headers: { Authorization: `Bearer ${acc.accessToken}` } });
+      const name = a.name || "attachment";
+      const mime = a.contentType || "application/octet-stream";
+      const content = a.contentBytes || "";
+      const bin = Buffer.from(String(content), "base64");
+      res.setHeader("Content-Type", mime);
+      res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
+      return res.end(bin);
+    }
+    return res.status(400).json({ error: "Unsupported provider" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};

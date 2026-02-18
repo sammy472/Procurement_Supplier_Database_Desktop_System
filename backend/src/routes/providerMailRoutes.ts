@@ -5,6 +5,8 @@ import {
   oauthCallback,
   listMessages,
   getMessage,
+  listAttachments,
+  downloadAttachment,
   sendMessage,
   deleteMessage,
   markRead,
@@ -18,6 +20,8 @@ router.get("/:provider/auth-url", authenticate, getAuthUrl);
 router.get("/:provider/callback", oauthCallback);
 router.get("/:provider/messages", authenticate, listMessages);
 router.get("/:provider/messages/:id", authenticate, getMessage);
+router.get("/:provider/messages/:id/attachments", authenticate, listAttachments);
+router.get("/:provider/messages/:id/attachments/:attId", authenticate, downloadAttachment);
 router.post("/:provider/messages", authenticate, sendMessage);
 router.delete("/:provider/messages/:id", authenticate, deleteMessage);
 router.patch("/:provider/messages/:id/read", authenticate, markRead);

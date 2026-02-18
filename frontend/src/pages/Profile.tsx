@@ -38,6 +38,8 @@ export default function Profile() {
   const [composeFiles, setComposeFiles] = useState<File[]>([]);
   const [showMailModal, setShowMailModal] = useState(false);
   const [activeMail, setActiveMail] = useState<any | null>(null);
+  const [activeAttachments, setActiveAttachments] = useState<Array<{ id: string; filename: string; size: number; mimeType: string }> | null>(null);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [toEmails, setToEmails] = useState<string[]>([]);
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [bccEmails, setBccEmails] = useState<string[]>([]);
@@ -660,6 +662,16 @@ export default function Profile() {
                           const msg = await providerMailsApi.getMessage(mailProvider, m.id);
                           setActiveMail(msg);
                           setShowMailModal(true);
+                          setAttachmentsLoading(true);
+                          setActiveAttachments(null);
+                          try {
+                            const atts = await providerMailsApi.listAttachments(mailProvider, m.id);
+                            setActiveAttachments(atts);
+                          } catch (e: any) {
+                            toast.error(e.message || "Failed to load attachments");
+                          } finally {
+                            setAttachmentsLoading(false);
+                          }
                           if (mailFolder === "inbox") {
                             markReadMutation.mutate(m.id);
                           }
@@ -1138,6 +1150,62 @@ export default function Profile() {
                   }
                   return <div className="text-gray-900 dark:text-white" dangerouslySetInnerHTML={{ __html: linkifyPlain(c.content) }} />;
                 })()}
+              </div>
+              <div className="mt-4">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">Attachments</div>
+                {attachmentsLoading ? (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading attachments...</div>
+                ) : activeAttachments && activeAttachments.length > 0 ? (
+                  <ul className="mt-2 space-y-2">
+                    {activeAttachments.map((a) => (
+                      <li key={a.id} className="flex items-center justify-between bg-gray-50 dark:bg-[#0f1929] rounded-se-md rounded-es-md p-2">
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-900 dark:text-white">{a.filename}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{a.mimeType} • {a.size ? `${Math.round(a.size / 1024)} KB` : ""}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            className="btn btn-secondary"
+                            onClick={async () => {
+                              try {
+                                const { blob } = await providerMailsApi.downloadAttachment(mailProvider, activeMail.id, a.id);
+                                const url = URL.createObjectURL(blob);
+                                window.open(url, "_blank");
+                                setTimeout(() => URL.revokeObjectURL(url), 10000);
+                              } catch (e: any) {
+                                toast.error(e.message || "Open failed");
+                              }
+                            }}
+                          >
+                            Open
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            onClick={async () => {
+                              try {
+                                const { blob, filename } = await providerMailsApi.downloadAttachment(mailProvider, activeMail.id, a.id);
+                                const url = URL.createObjectURL(blob);
+                                const aEl = document.createElement("a");
+                                aEl.href = url;
+                                aEl.download = filename || "attachment";
+                                document.body.appendChild(aEl);
+                                aEl.click();
+                                document.body.removeChild(aEl);
+                                setTimeout(() => URL.revokeObjectURL(url), 10000);
+                              } catch (e: any) {
+                                toast.error(e.message || "Download failed");
+                              }
+                            }}
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">No attachments</div>
+                )}
               </div>
             </div>
           </div>
