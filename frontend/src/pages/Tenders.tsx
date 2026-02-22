@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { MdAdd, MdDelete, MdUpload, MdDownload, MdPictureAsPdf, MdVisibility } from "react-icons/md";
 import { useAuthStore } from "../store/authStore";
 import DocumentViewer from "../components/DocumentViewer";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 interface UserOption {
   id: string;
@@ -458,16 +459,7 @@ export default function Tenders() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="mb-4 inline-block">
-            <div className="w-12 h-12 border-4 border-gray-300 dark:border-[#3f51b5] border-t-primary-500 rounded-se-md rounded-es-md animate-spin"></div>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading tenders...
-          </p>
-        </div>
-      </div>
+      <LoadingSkeleton/>
     );
   }
 

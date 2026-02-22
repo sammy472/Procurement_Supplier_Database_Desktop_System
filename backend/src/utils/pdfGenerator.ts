@@ -452,6 +452,10 @@ export const generatePurchaseOrderPDFNEW = (
   });
 
   currentY = doc.y + 20;
+  if(po.paymentTerms){
+    doc.fontSize(10).font("Helvetica").fillColor(textColor).text(po.paymentTerms, contentLeft, currentY);
+    currentY = doc.y + 20;
+  }
 
   if (currentY > pageHeight - 100) {
     doc.addPage();
@@ -462,11 +466,8 @@ export const generatePurchaseOrderPDFNEW = (
     doc.strokeColor(textColor);
     currentY = pageHeight - 80;
   }
-  
-  const additionalTermsY = pageHeight - 70;
-  doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, additionalTermsY);
 
-  const signatureY = doc.y + 20;
+  const signatureY = pageHeight - 70;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
   doc.moveTo(contentLeft + 70, signatureY + 12)
     .lineTo(contentLeft + 270, signatureY + 12)

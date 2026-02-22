@@ -14,6 +14,7 @@ import {
   calculateRowTotal
 } from '../utils/invoiceUtils';
 
+
 const API_ORIGIN_LOCAL = API_URL.replace(/\/api\/?$/, "");
 export default function InvoiceGenerator() {
   const [baseInvoice, setBaseInvoice] = useState<BaseInvoice | null>(null);

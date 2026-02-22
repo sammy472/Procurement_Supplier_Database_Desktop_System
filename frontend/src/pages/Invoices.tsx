@@ -4,6 +4,7 @@ import { invoiceApi } from "../api/invoices";
 import { MdSearch, MdOpenInNew, MdClose, MdEdit, MdDelete, MdSave, MdCancel, MdAdd } from "react-icons/md";
 import { toast } from "react-toastify";
 import { DocumentViewer } from "../components/DocumentViewer";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 type InvoiceRow = {
   id: string;
@@ -203,6 +204,12 @@ export default function Invoices() {
       toast.error(error.message || "Failed to open PDF");
     }
   };
+
+  if (isLoading) {
+    return (
+      <LoadingSkeleton />
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiClient, handleApiError } from "../api/client";
 import { useSearchParams } from "react-router-dom";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+
+
 
 export default function EmailProviderCallback() {
   const navigate = useNavigate();
@@ -68,13 +71,6 @@ export default function EmailProviderCallback() {
   }, [params, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="mb-4 inline-block">
-          <div className="w-12 h-12 border-4 border-gray-300 dark:border-[#3f51b5] border-t-primary-500 rounded-se-md rounded-es-md animate-spin"></div>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400">Connecting your email account...</p>
-      </div>
-    </div>
+    <LoadingSkeleton />
   );
 }

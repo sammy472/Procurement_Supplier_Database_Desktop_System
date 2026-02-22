@@ -457,8 +457,7 @@ export const requestPasswordReset = async (req: AuthRequest, res: Response) => {
 
     res.json({
       message: "Password reset link sent to email",
-      // Remove in production - only for development
-      resetToken: process.env.NODE_ENV === "development" ? resetToken : undefined,
+      resetToken,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
