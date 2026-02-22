@@ -318,7 +318,7 @@ export const generatePurchaseOrderPDFNEW = (
   doc.font("Helvetica").fontSize(9);
 
   const shippingServiceText = po.shippingService || "";
-  const shippingMethodText = po.paymentTerms || "";
+  const shippingMethodText = po.shippingMethod || "";
   let deliveryText = "";
   if (po.expectedDeliveryDate) {
     deliveryText = new Date(po.expectedDeliveryDate).toLocaleDateString();
