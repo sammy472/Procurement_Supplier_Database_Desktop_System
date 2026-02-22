@@ -467,7 +467,7 @@ export const generatePurchaseOrderPDFNEW = (
     currentY = pageHeight - 80;
   }
 
-  const signatureY = pageHeight - 70;
+  const signatureY = doc.y + 20;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
   doc.moveTo(contentLeft + 70, signatureY + 12)
     .lineTo(contentLeft + 270, signatureY + 12)

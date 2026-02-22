@@ -98,9 +98,11 @@ export const authApi = {
     }
   },
 
-  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+  requestPasswordReset: async (
+    email: string
+  ): Promise<{ message: string; resetToken?: string }> => {
     try {
-      const response = await apiClient.post<{ message: string }>(
+      const response = await apiClient.post<{ message: string; resetToken?: string }>(
         "/auth/request-password-reset",
         { email }
       );
