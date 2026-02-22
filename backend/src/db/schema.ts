@@ -510,6 +510,8 @@ export const purchaseOrders = pgTable("purchase_orders", {
   vatAmount: decimal("vat_amount", { precision: 12, scale: 2 }).default("0"),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   expectedDeliveryDate: timestamp("expected_delivery_date"),
+  shippingMethod: text("shipping_method"),
+  shippingService: text("shipping_service"),
   paymentTerms: text("payment_terms"),
   status: poStatusEnum("status").notNull().default("draft"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

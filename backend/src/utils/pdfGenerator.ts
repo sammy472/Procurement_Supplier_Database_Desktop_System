@@ -98,6 +98,8 @@ interface PurchaseOrderData {
   total: string;
   expectedDeliveryDate?: string;
   paymentTerms?: string;
+  shippingMethod?: string;
+  shippingService?: string;
   createdAt: string;
 }
 
@@ -159,10 +161,7 @@ export const generatePurchaseOrderPDFNEW = (
   doc.registerFont("Times-Roman", "Times-Roman");
   doc.registerFont("Times-Bold", "Times-Bold");
 
-  const bannerPath = resolveAssetPath("banner", company);
-  const stampPath = resolveAssetPath("stamp", company);
   const logoPath = resolveAssetPath("logo", company);
-  const poBanner = resolveAssetPath("po_banner", company);
 
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
@@ -171,11 +170,10 @@ export const generatePurchaseOrderPDFNEW = (
   const contentRight = pageWidth - 30;
   const contentWidth = contentRight - contentLeft;
 
-  const dark = "#202020";
-  const sideGreen = "#a7b670";
+  const dark = "#ffffff";
+  const sideGreen = "#0d0d0cff";
   const headerGreen = "#6e7f3a";
-  const textColor = "#ffffff";
-
+  const textColor = "#202020";
   doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
   doc.fillColor(textColor);
   doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
@@ -319,7 +317,7 @@ export const generatePurchaseOrderPDFNEW = (
   const shippingBodyY = shippingBoxY + shippingHeaderHeight + 6;
   doc.font("Helvetica").fontSize(9);
 
-  const shippingServiceText = "";
+  const shippingServiceText = po.shippingService || "";
   const shippingMethodText = po.paymentTerms || "";
   let deliveryText = "";
   if (po.expectedDeliveryDate) {
@@ -464,8 +462,11 @@ export const generatePurchaseOrderPDFNEW = (
     doc.strokeColor(textColor);
     currentY = pageHeight - 80;
   }
+  
+  const additionalTermsY = pageHeight - 70;
+  doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, additionalTermsY);
 
-  const signatureY = pageHeight - 70;
+  const signatureY = doc.y + 20;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
   doc.moveTo(contentLeft + 70, signatureY + 12)
     .lineTo(contentLeft + 270, signatureY + 12)

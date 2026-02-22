@@ -20,6 +20,8 @@ interface POFormData {
   vatRate: number;
   expectedDeliveryDate: string;
   paymentTerms: string;
+  shippingMethod?: string;
+  shippingService?: string;
   status: "draft" | "sent" | "delivered" | "closed";
 }
 
@@ -47,6 +49,8 @@ export default function PurchaseOrders() {
     vatRate: 0,
     expectedDeliveryDate: new Date().toISOString().split("T")[0],
     paymentTerms: "",
+    shippingMethod: "",
+    shippingService: "",
     status: "draft",
   });
   const [viewerDocument, setViewerDocument] = useState<{ url: string; name: string } | null>(null);
@@ -679,10 +683,37 @@ export default function PurchaseOrders() {
                   </select>
                 </div>
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Shipping Method
+                </label>
+                <input
+                  value={formData.shippingMethod}
+                  onChange={(e) =>
+                    setFormData({ ...formData, shippingMethod: e.target.value })
+                  }
+                  className="w-full px-3 py-2 rounded-se-md rounded-es-md dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Enter shipping method"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Shipping Service
+                </label>
+                <input
+                  value={formData.shippingService}
+                  onChange={(e) =>
+                    setFormData({ ...formData, shippingService: e.target.value })
+                  }
+                  className="w-full px-3 py-2 rounded-se-md rounded-es-md dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Enter shipping service"
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Payment Terms
+                  Additional Terms
                 </label>
                 <textarea
                   value={formData.paymentTerms}
@@ -691,7 +722,7 @@ export default function PurchaseOrders() {
                   }
                   className="w-full px-3 py-2 rounded-se-md rounded-es-md dark:bg-gray-700 text-gray-900 dark:text-white"
                   rows={3}
-                  placeholder="Enter payment terms"
+                  placeholder="Enter additional terms"
                 />
               </div>
 
