@@ -176,6 +176,8 @@ export default function PurchaseOrders() {
       paymentTerms: formData.paymentTerms,
       status: formData.status,
       currency: formData.currency,
+      shippingMethod: formData.shippingMethod,
+      shippingService: formData.shippingService,
     };
 
     if (editingId) {

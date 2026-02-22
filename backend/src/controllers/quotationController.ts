@@ -353,7 +353,7 @@ export const emailQuotationPDF = async (req: AuthRequest, res: Response) => {
     }
 
     const quotation = quotations[0];
-    const pdfBuffer = await generateQuotationPDFBuffer(quotation as any);
+    const pdfBuffer = await generateQuotationPDFBuffer(quotation as any, req.user?.company!);
 
     await sendEmail({
       to: recipientEmail,

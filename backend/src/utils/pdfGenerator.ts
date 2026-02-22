@@ -425,6 +425,12 @@ export const generatePurchaseOrderPDFNEW = (
   const taxable = Math.max(subtotal - discountAmount, 0);
   if (doc.y > doc.page.height - 200) {
     doc.addPage();
+    doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+    doc.fillColor(textColor);
+    doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
+    doc.fillColor(textColor);
+    doc.strokeColor(textColor);
+    currentY = 40;
   }
   const totals: Array<{ label: string; value: string }> = [
     { label: `SUBTOTAL (${ccy})`, value: formatNum(subtotal.toFixed(2)) },
@@ -685,7 +691,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
       },
       rowStyles:{
-        backgroundColor: '#D3D3D3',
+        backgroundColor: '#6e7f3a',
         height: itemHeight + 30,
         padding: 5,
         align:{x: 'center', y: 'top' },
@@ -739,7 +745,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         minHeight: itemHeight-5,
         padding: 5,
         align:{x: 'center', y: 'bottom' },
-        backgroundColor: '#F0F0F0',
+        backgroundColor: '#333333',
       }
     }).row([info.label.trim(), info.value as string]);
   });
@@ -747,7 +753,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   doc.end();
 };
 
-export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Buffer> => {
+export const generateQuotationPDFBuffer = (quotation: QuotationData, company: string): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       margin: 0,
@@ -760,261 +766,252 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData): Promise<Bu
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
 
-    // Font setup
-    doc.registerFont('Helvetica', 'Helvetica');
-    doc.registerFont('Helvetica-Bold', 'Helvetica-Bold');
-    doc.registerFont('Times-Roman', 'Times-Roman');
-    doc.registerFont('Times-Bold', 'Times-Bold');
+  // Font setup
+  doc.registerFont('Helvetica', 'Helvetica');
+  doc.registerFont('Helvetica-Bold', 'Helvetica-Bold');
+  //new times roman
+  doc.registerFont('Times-Roman', 'Times-Roman');
+  doc.registerFont('Times-Bold', 'Times-Bold');
 
-    const bannerPath = resolveAssetPath("banner");
-    const stampPath = resolveAssetPath("stamp"); 
-    const logoPath = resolveAssetPath("logo");
+  const bannerPath = resolveAssetPath("banner",company);
+  const stampPath = resolveAssetPath("stamp",company);
+  const logoPath = resolveAssetPath("logo",company);
 
-    let currentY = 0;
+  // Starting position
+  let currentY = 0;
 
-    // Banner Image
-    try {
-      doc.image(bannerPath, 0, 0, { width: doc.page.width, height: 100 });
-      currentY += 110;
-    } catch (error) {
-      console.warn('Banner image not found, continuing without it');
-      currentY += 10;
-    }
+  // Banner Image - Check if file exists or handle gracefully
+  try {
+    doc.image(bannerPath, 0, 0, { width: doc.page.width, height: 100 });
+    currentY += 110;
+  } catch (error) {
+    console.warn('Banner image not found, continuing without it');
+    currentY += 10;
+  }
 
-    // Date
-    doc.fontSize(10).font('Times-Bold')
-      .text(new Date(quotation.createdAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),2, currentY, { align: 'left' });
-    
-    currentY = doc.y + 20;
+  // Date - Top left corner
+  doc.fontSize(10).font('Times-Bold')
+    .text(new Date(quotation.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }),2, currentY, { align: 'left' });
+  
+  currentY = 20 + doc.y;
 
-    // Client Details
-    doc.fontSize(11).font('Times-Bold')
-      .text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
-    
-    currentY = doc.y + 15;
-    if (currentY > doc.page.height - 220) {
-      doc.addPage();
-      currentY = 20;
-    }
-    
-    // Process multi-line address
-    const clientLines = quotation.clientAddress?.split('\n') || [];
-    doc.fontSize(10).font('Times-Bold');
-    clientLines.forEach(line => {
-      doc.text(line.trim(), 2, currentY);
-      currentY += 15;
-    });
+  // Client Details - Left side (like in template)
+  doc.fontSize(11).font('Times-Bold').text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
+  
+  currentY = doc.y + 10;
+  
+  // Process multi-line address
+  const clientLines = quotation.clientAddress?.split('\n') || [];
+  doc.fontSize(10).font('Times-Bold');
+  clientLines.forEach(line => {
+    doc.text(line.trim(), 2, currentY);
+    currentY += 10;
+  });
 
-    currentY = doc.y + 20; 
+  currentY = doc.y + 20;
 
-    // Salutation
-    doc.fontSize(11).font('Times-Roman')
-      .text('Dear Sir/Madam,', 2, currentY);
-    
-    currentY = doc.y + 30;
+  // Salutation
+  doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
+  
+  currentY = doc.y + 30;
 
-    // Subject/Reference
-    const subjectText = quotation.projectTitle 
-      ? `RE: ${quotation.projectTitle.toUpperCase().trim()}`
-      : 'RE: QUOTATION';
-    
-    doc.fontSize(12).font('Times-Bold')
-      .text(subjectText, 2, currentY);
-    
-    currentY = doc.y + 10;
+  // Subject/Reference
+  const subjectText = quotation.projectTitle 
+    ? `RE: ${quotation.projectTitle.toUpperCase().trim()}`
+    : 'RE: QUOTATION';
+  
+  doc.fontSize(12).font('Times-Bold')
+    .text(subjectText, 2, currentY);
+  
+  currentY = doc.y + 10;
 
-    // Body text
-    const [whole, fraction] = quotation.total.split('.');
-    let lineItemsArray = parseLineItems(quotation.lineItems);
-    const lineItemDescriptions = lineItemsArray.map(item => item.description);
-    let bodyText = `In relation to the above subject matter, we the undersigned offer to supply the following item${lineItemDescriptions.length > 1 ? 's' : ''}, ${lineItemDescriptions.join(", ")} in accordance to your Request with tender number: ${quotation.projectReference || quotation.quotationNumber}.We hereby, humbly submit our quotation for your perusal. Our quotation is binding upon us.Our offer is in the sum of ${ToWordsConverter.convert(parseInt(whole))} ${getMajorCurrencyUnit(quotation.currency as CurrencyCode)} and ${ToWordsConverter.convert(parseInt(fraction))} ${getMinorCurrencyUnit(quotation.currency as CurrencyCode,parseInt(fraction))} inclusive of all taxes.`;
-    doc.fontSize(11).font('Times-Roman').text(bodyText, 2, currentY, {
-      width: 500,
-      lineGap: 5,
-      align: 'justify'
-    });
-    
-    currentY = doc.y + 80; 
+  // Body text
+  //split total amount
+  const [whole, fraction] = quotation.total.split('.');
+  let lineItemsArray = parseLineItems(quotation.lineItems);
+  const lineItemDescriptions = lineItemsArray.map(item => item.description);
+  let bodyText = `In relation to the above subject matter, we the undersigned offer to supply the following item${lineItemDescriptions.length > 1 ? 's' : ''}, ${lineItemDescriptions.join(", ")} in accordance to your Request with tender number: ${quotation.projectReference || quotation.quotationNumber}.We hereby, humbly submit our quotation for your perusal. Our quotation is binding upon us.Our offer is in the sum of ${ToWordsConverter.convert(parseInt(whole))} ${getMajorCurrencyUnit(quotation.currency as CurrencyCode)} and ${ToWordsConverter.convert(parseInt(fraction))} ${getMinorCurrencyUnit(quotation.currency as CurrencyCode,parseInt(fraction))} inclusive of all taxes.`;
+  doc.fontSize(11).font('Times-Roman').text(bodyText, 2, currentY, {
+    width: 500,
+    lineGap: 5,
+    align: 'justify'
+  });
+  
+  currentY = doc.y + 40;
 
-    // Delivery period
-    doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
-    currentY = doc.y + 10;
-    doc.fontSize(11).font('Times-Roman')
-      .text(`Delivery shall be made within ${quotation.deliveryPeriod || '1 week'} after receipt of a Confirmed Purchase Order.`, 5);
-    
-    currentY = doc.y + 15;
+  // Delivery period
+  doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
+  currentY = doc.y + 10;
+  doc.fontSize(11).font('Times-Roman')
+    .text(`Delivery shall be made within ${quotation.deliveryPeriod || '1 week'} after receipt of a Confirmed Purchase Order.`, 5);
+  doc.moveDown();
+  currentY = doc.y + 15;
 
-    // Delivery Terms
-    doc.fontSize(12).font('Times-Bold').text('- Delivery Terms', 2, currentY);
-    currentY = doc.y + 10; 
-    doc.fontSize(11).font('Times-Roman').text(quotation.deliveryTerms || 'NA', 2, currentY);
-    
-    currentY = doc.y + 15;
+  // Delivery Terms
+  doc.fontSize(12).font('Times-Bold').text('- Delivery Terms', 2, currentY);
+  currentY = doc.y + 10;
+  doc.fontSize(11).font('Times-Roman').text(quotation.deliveryTerms || 'NA', 2, currentY);
+  doc.moveDown();
+  currentY = doc.y + 15;
 
-    // Tender Validity
-    doc.fontSize(12).font('Times-Bold').text('- Tender Validity', 2, currentY);
-    currentY = doc.y + 10;
-    doc.fontSize(11).font('Times-Roman').text(`Our price contained in our tender submission shall be valid for a period of ${quotation.validityPeriod || 60} days.`, 2, currentY);
-    
-    currentY = doc.y + 15;
+  // Tender Validity
+  doc.fontSize(12).font('Times-Bold').text('- Tender Validity', 2, currentY);
+  currentY = doc.y + 10;
+  doc.fontSize(11).font('Times-Roman').text(`Our price contained in our tender submission shall be valid for a period of ${quotation.validityPeriod || 60} days.`, 2, currentY);
+  doc.moveDown();
+  currentY = doc.y + 15;
 
-    // Terms of Payment
-    doc.fontSize(12).font('Times-Bold').text('- Terms of Payment', 2, currentY);
-    currentY = doc.y + 10;
-    doc.fontSize(11).font('Times-Roman').text(quotation.paymentTerms || '45 days after delivery of invoices', 2, currentY);
-    
-    currentY = doc.y + 15;
+  // Terms of Payment
+  doc.fontSize(12).font('Times-Bold').text('- Terms of Payment', 2, currentY);
+  currentY = doc.y + 10;
+  doc.fontSize(11).font('Times-Roman').text(quotation.paymentTerms || '45 days after delivery of invoices', 2, currentY);
+  currentY = doc.y + 15;
 
-    // Closing remarks
-    doc.fontSize(11).font('Times-Roman').text('I look forward to building a mutually beneficial business relationship with you.', 2, currentY);
-    doc.moveDown(20);
-    doc.text('Thank you.', 2, currentY+20);
-    currentY = doc.y + 50;
+  // Closing remarks
+  doc.fontSize(11).font('Times-Roman').text('I look forward to building a mutually beneficial business relationship with you.', 2, currentY);
+  currentY = doc.y + 20;
+  doc.text('Thank you.', 2, currentY);
+  currentY = doc.y + 35;
+  //Insert Stamp Image
+  try {
+    doc.image(stampPath, 2, currentY, { width: 150, height: 100 });
+  } catch (error) {
+    console.warn('Stamp image not found, continuing without it');
+  }  
+  
+  currentY = doc.y + 60;
 
-    // Stamp
-    try {
-      doc.image(stampPath, 2, currentY, { width: 150, height: 100 });
-    } catch (error) {
-      console.warn('Stamp image not found, continuing without it');
-    }  
-    
-    currentY = doc.y + 60;
+  // Check if we need a new page for PROFORMA INVOICE
+  if (currentY + doc.y > doc.page.height) {
+    doc.addPage();
+    currentY = 10;
+  }
 
-    // PROFORMA INVOICE Check
-    if (currentY + doc.y > doc.page.height) {
-      doc.addPage();
-      currentY = 10;
-    }
+  //Insert Logo Image
+  try {
+    doc.image(logoPath, 2, currentY, { width: 100 ,height: 50});
+  } catch (error) {
+    console.warn('Logo image not found, continuing without it');
+  }
 
-    // Logo
-    try {
-      doc.image(logoPath, 2, currentY, { width: 100 });
-    } catch (error) {
-      console.warn('Logo image not found, continuing without it');
-    }
+  // PROFORMA INVOICE Section
+  doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
+  
+  currentY = doc.y + 30;
 
-    // PROFORMA INVOICE Section
-    doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
-    
-    currentY = doc.y + 90;
+  const before = doc.y;
+  // Bill To section
+  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL TO:', 2, currentY, { align: 'right' });
+  currentY = doc.y + 10;
+  doc.fontSize(12).font('Times-Bold').fillColor("black").text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
+  
+  const after = doc.y;
 
-    // Supplier Info
-    doc.fontSize(12).font('Times-Bold').text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-    currentY = doc.y + 15;
-    
-    doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-    currentY = doc.y + 15;
-    doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-    currentY = doc.y + 15;    
-    doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
-    currentY = doc.y + 15; 
+  currentY = doc.y - (after - before) - 10;
+  // Supplier Info (ONK GROUP LIMITED)
+  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
+  currentY = doc.y + 5;
+  doc.fontSize(12).font('Times-Bold').fillColor("black").text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
+  currentY = doc.y + 5;
+  doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
+  currentY = doc.y + 5;
+  doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
+  currentY = doc.y + 5;
+  doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
+  currentY = doc.y + 10;
 
-    // Date
-    doc.fontSize(12).font('Times-Bold')
-      .text(new Date(quotation.createdAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),2, currentY, { align: 'left' });
-    
-    currentY = doc.y + 30;
+  // Date - Top right corner
+  doc.fontSize(12).font('Times-Bold')
+    .text(new Date(quotation.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }),2, currentY, { align: 'left' });
+  
+  currentY = doc.y + 30;
+  
+  currentY = doc.y + 25;
+  if (currentY > doc.page.height - 220) {
+    doc.addPage();
+    currentY = 20;
+  }
+  // First Line Items Table (Summary Table)
+  const itemHeight = 35;
+  const pageWidth = doc.page.width-4;
 
-    // Bill To section
-    doc.fontSize(12).font('Times-Bold').text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY);
-    
-    currentY = doc.y + 15;
-    doc.moveDown(2);
+  let testLineItems: any[] = parseLineItems(quotation.lineItems);
+  testLineItems = testLineItems.map(item => [item.description, item.quantity, formatNum(parseFloat(item.unitPrice?.toString()).toFixed(2)), formatNum(parseFloat(item.total?.toString()).toFixed(2))]);
 
-    // Summary Table
-    if (currentY > doc.page.height - 220) {
-      doc.addPage();
-      currentY = 20;
-    }
-    const itemHeight = 35;
-    const pageWidth = doc.page.width-4;
-
-    let testLineItems: any[] = parseLineItems(quotation.lineItems);
-    testLineItems = testLineItems.map(item => [item.description, item.quantity, formatNum(parseFloat(item.unitPrice?.toString()).toFixed(2)), formatNum(parseFloat(item.total?.toString()).toFixed(2))]);
-
+  const renderHeader = () => {
     doc.table({
       columnStyles: (i)=>{
         return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
       },
       rowStyles:{
-        backgroundColor: '#D3D3D3',
+        backgroundColor: '#6e7f3a',
         height: itemHeight + 30,
         padding: 5,
         align:{x: 'center', y: 'top' },
       }
     }).row(['No.', 'MATERIAL', 'QTY', `UNIT PRICE\n(${quotation.currency})`, `TOTAL\n(${quotation.currency})`]);
+  };
+  renderHeader();
 
-    doc.fontSize(12).font('Times-Roman');
-    const renderHeader = () => {
-      doc.table({
-        columnStyles: (i)=>{
-          return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
-        },
-        rowStyles:{
-          backgroundColor: '#D3D3D3',
-          height: itemHeight + 30,
-          padding: 5,
-          align:{x: 'center', y: 'top' },
-        }
-      }).row(['No.', 'MATERIAL', 'QTY', `UNIT PRICE\n(${quotation.currency})`, `TOTAL\n(${quotation.currency})`]);
-    };
-    testLineItems.forEach((item, index) => {
-      if (doc.y > doc.page.height - 200) {
-        doc.addPage();
-        renderHeader();
-      }
-      doc.table({
-        columnStyles: [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15],
-        rowStyles:{
-          minHeight: itemHeight,
-          padding: 5,
-          align:{x: 'right', y: 'bottom' }
-        }
-      }).row([index + 1, ...item]);
-    });
-
-    // Taxation and Total Amount
-    currentY = doc.y + 20;
-    if (currentY > doc.page.height - 220) {
-      doc.addPage();
-      currentY = 20;
-    }
-    doc.fontSize(12).font('Times-Bold');
-    const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
-    const additionalInfoArray = [
-      { label: `SUBTOTAL (${quotation.currency})`, value: quotation.subtotal },
-      {label:`NHIL (${quotation.nhilRate || '0.00'})%`, value: formatNum((parseFloat(quotation.nhilRate!)*parseFloat(quotation.subtotal!)/100).toFixed(2)) || '0.00'},
-      {label:`GETFUND (${quotation.getfundRate || '0.00'})%` , value: formatNum((parseFloat(quotation.getfundRate!)*parseFloat(quotation.subtotal!)/100).toFixed(2)) || '0.00'},
-      {label:`COVID-19 (${quotation.covidRate || '0.00'})%` , value: formatNum((parseFloat(quotation.covidRate!)*parseFloat(quotation.subtotal!)/100).toFixed(2)) || '0.00'},
-      {label:`TAXABLE AMOUNT (${quotation.currency})`, value: formatNum(taxableAmount.toFixed(2))},
-      {label:`VAT AMOUNT (${quotation.currency})`, value: formatNum(quotation.vatAmount)},
-      { label: `TOTAL AMOUNT (${quotation.currency})`, value: formatNum(quotation.total) }
-    ];
-
+  doc.fontSize(12).font('Times-Roman');
+  testLineItems.forEach((item, index) => {
     if (doc.y > doc.page.height - 200) {
       doc.addPage();
+      renderHeader();
     }
-    additionalInfoArray.forEach(info => {
-      doc.table({
-        columnStyles: [pageWidth * 0.85, pageWidth * 0.15],
-        rowStyles:{
-          minHeight: itemHeight-5,
-          padding: 5,
-          align:{x: 'center', y: 'bottom' },
-          backgroundColor: '#F0F0F0',
-        }
-      }).row([info.label.trim(), info.value as string]);
-    });
+    doc.table({
+      columnStyles: [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15],
+      rowStyles:{
+        minHeight: itemHeight,
+        padding: 5,
+        align:{x: 'right', y: 'bottom' }
+      }
+    }).row([index + 1, ...item]);
+  });
 
-    doc.end();
+  //Taxation and Total Amount
+  currentY = doc.y + 20;
+  if (currentY > doc.page.height - 220) {
+    doc.addPage();
+    currentY = 20;
+  }
+  doc.fontSize(12).font('Times-Bold');
+  const taxableAmount = (parseFloat(quotation.subtotal) + parseFloat(quotation.nhilRate!) + parseFloat(quotation.getfundRate || '0') + parseFloat(quotation.covidRate || '0'));
+  const additionalInfoArray = [
+    { label: `SUBTOTAL (${quotation.currency})`, value: formatNum(quotation.subtotal) },
+    {label:`NHIL (${quotation.nhilRate || '0.00'})%`, value: formatNum((parseFloat(quotation.nhilRate!)*parseFloat(quotation.subtotal!)/100).toFixed(2)) || '0.00'},
+    {label:`GETFUND (${quotation.getfundRate || '0.00'})%` , value: formatNum((parseFloat(quotation.getfundRate!)*parseFloat(quotation.subtotal!)/100).toFixed(2)) || '0.00'},
+    {label:`TAXABLE AMOUNT (${quotation.currency})`, value: formatNum(taxableAmount.toFixed(2))},
+    {label:`VAT AMOUNT (${quotation.currency})`, value: formatNum(quotation.vatAmount)},
+    { label: `TOTAL AMOUNT (${quotation.currency})`, value: formatNum(quotation.total) }
+  ];
+
+
+  doc.fontSize(12).font('Times-Bold');
+  if (doc.y > doc.page.height - 200) {
+    doc.addPage();
+  }
+  additionalInfoArray.forEach(info => {
+    doc.table({
+      columnStyles: [pageWidth * 0.85, pageWidth * 0.15],
+      rowStyles:{
+        minHeight: itemHeight-5,
+        padding: 5,
+        align:{x: 'center', y: 'bottom' },
+        backgroundColor: '#333333',
+      }
+    }).row([info.label.trim(), info.value as string]);
+  });
+
+  doc.end();
   });
 };
 
