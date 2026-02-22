@@ -101,217 +101,13 @@ interface PurchaseOrderData {
   createdAt: string;
 }
 
-const COMPANY_NAME = "ONK Group Limited";
-const COMPANY_ADDRESS = "123 Business Street\nIndustrial Area\nCity, Country";
-const COMPANY_PHONE = "+1234567890";
-const COMPANY_EMAIL = "info@onkgroup.com";
-
-export const generatePurchaseOrderPDF = (
-  po: PurchaseOrderData,
-  res: Response,
-  inline: boolean = false
-) => {
-  const doc = new PDFDocument({ margin: 50 });
-
-  res.setHeader("Content-Type", "application/pdf");
-  
-  if (inline) {
-    // For viewing in browser
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename=purchase-order-${po.poNumber}.pdf`
-    );
-  } else {
-    // For downloading
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=purchase-order-${po.poNumber}.pdf`
-    );
-  }
-
-  doc.pipe(res);
-
-  // Header
-  doc.fontSize(20).font("Helvetica-Bold").text(COMPANY_NAME, { align: "center" });
-  doc.moveDown(0.5);
-  doc.fontSize(10).font("Helvetica").text(COMPANY_ADDRESS, { align: "center" });
-  doc.fontSize(10).text(`Phone: ${COMPANY_PHONE} | Email: ${COMPANY_EMAIL}`, {
-    align: "center",
-  });
-  doc.moveDown(1);
-
-  // Title
-  doc
-    .fontSize(18)
-    .font("Helvetica-Bold")
-    .text("PURCHASE ORDER", { align: "center", underline: true });
-  doc.moveDown(1);
-
-  // PO Details
-  doc.fontSize(10).font("Helvetica");
-  doc.text(`PO Number: ${po.poNumber}`, 50, doc.y);
-  doc.text(
-    `Date: ${new Date(po.createdAt).toLocaleDateString()}`,
-    350,
-    doc.y - 15
-  );
-  doc.moveDown(1);
-
-  // Supplier Details
-  doc.fontSize(12).font("Helvetica-Bold").text("To:", 50, doc.y);
-  doc.fontSize(10).font("Helvetica");
-  doc.text(po.supplierName);
-  if (po.supplierAddress) {
-    doc.text(po.supplierAddress);
-  }
-  if (po.supplierEmail) {
-    doc.text(`Email: ${po.supplierEmail}`);
-  }
-  if (po.supplierPhone) {
-    doc.text(`Phone: ${po.supplierPhone}`);
-  }
-  doc.moveDown(1.5);
-
-  // Line Items Table
-  const tableTop = doc.y;
-  const itemHeight = 25;
-  const pageWidth = doc.page.width - 100;
-  const columns = {
-    description: { x: 50, width: pageWidth * 0.5 },
-    quantity: { x: 50 + pageWidth * 0.5, width: pageWidth * 0.15 },
-    unitPrice: { x: 50 + pageWidth * 0.65, width: pageWidth * 0.15 },
-    total: { x: 50 + pageWidth * 0.8, width: pageWidth * 0.2 },
-  };
-
-  // Table Header
-  doc.fontSize(10).font("Helvetica-Bold");
-  doc.text("Description", columns.description.x, tableTop);
-  doc.text("Qty", columns.quantity.x, tableTop, { width: columns.quantity.width, align: "right" });
-  doc.text("Unit Price", columns.unitPrice.x, tableTop, { width: columns.unitPrice.width, align: "right" });
-  doc.text("Total", columns.total.x, tableTop, { width: columns.total.width, align: "right" });
-
-  // Draw line under header
-  doc
-    .moveTo(50, tableTop + 15)
-    .lineTo(pageWidth + 50, tableTop + 15)
-    .stroke();
-
-  // Parse line items
-  let lineItems: LineItem[] = [];
-  if (typeof po.lineItems === "string") {
-    try {
-      lineItems = JSON.parse(po.lineItems);
-    } catch (e) {
-      lineItems = [];
-    }
-  } else {
-    lineItems = po.lineItems;
-  }
-
-  // Table Rows
-  doc.fontSize(9).font("Helvetica");
-  let currentY = tableTop + 25;
-  lineItems.forEach((item) => {
-    if (currentY > doc.page.height - 150) {
-      doc.addPage();
-      currentY = 50;
-    }
-
-    doc.text(item.description || "", columns.description.x, currentY, {
-      width: columns.description.width,
-    });
-    doc.text(
-      item.quantity?.toString() || "0",
-      columns.quantity.x,
-      currentY,
-      { width: columns.quantity.width, align: "right" }
-    );
-    doc.text(
-      `$${parseFloat(item.unitPrice?.toString() || "0").toFixed(2)}`,
-      columns.unitPrice.x,
-      currentY,
-      { width: columns.unitPrice.width, align: "right" }
-    );
-    doc.text(
-      `$${parseFloat(item.total?.toString() || "0").toFixed(2)}`,
-      columns.total.x,
-      currentY,
-      { width: columns.total.width, align: "right" }
-    );
-
-    currentY += itemHeight;
-  });
-
-  // Draw line after items
-  doc.moveTo(50, currentY - 10).lineTo(pageWidth + 50, currentY - 10).stroke();
-  doc.moveDown(1);
-
-  // Totals
-  const totalsY = Math.max(currentY, doc.page.height - 200);
-  doc.fontSize(10).font("Helvetica");
-
-  doc.text("Subtotal:", pageWidth - 150, totalsY, { align: "right" });
-  doc.text(
-    `$${parseFloat(po.subtotal || "0").toFixed(2)}`,
-    pageWidth + 50,
-    totalsY,
-    { align: "right" }
-  );
-
-  if (parseFloat(po.discount || "0") > 0) {
-    doc.text("Discount:", pageWidth - 150, totalsY + 15, { align: "right" });
-    doc.text(
-      `-$${parseFloat(po.discount || "0").toFixed(2)}`,
-      pageWidth + 50,
-      totalsY + 15,
-      { align: "right" }
-    );
-  }
-
-  if (parseFloat(po.vatRate || "0") > 0) {
-    doc.text(`VAT (${po.vatRate}%):`, pageWidth - 150, totalsY + 30, {
-      align: "right",
-    });
-    doc.text(
-      `$${parseFloat(po.vatAmount || "0").toFixed(2)}`,
-      pageWidth + 50,
-      totalsY + 30,
-      { align: "right" }
-    );
-  }
-
-  doc.fontSize(12).font("Helvetica-Bold");
-  doc.text("Total:", pageWidth - 150, totalsY + 50, { align: "right" });
-  doc.text(
-    `$${parseFloat(po.total || "0").toFixed(2)}`,
-    pageWidth + 50,
-    totalsY + 50,
-    { align: "right" }
-  );
-
-  doc.moveDown(2);
-
-  // Additional Information
-  doc.fontSize(9).font("Helvetica");
-  if (po.expectedDeliveryDate) {
-    doc.text(
-      `Expected Delivery Date: ${new Date(po.expectedDeliveryDate).toLocaleDateString()}`
-    );
-  }
-  doc.moveDown(1);
-
-  if (po.paymentTerms) {
-    doc.fontSize(9).font("Helvetica-Bold").text("Payment Terms:");
-    doc.fontSize(8).font("Helvetica").text(po.paymentTerms, {
-      width: pageWidth,
-    });
-  }
-
-  doc.end();
-};
+const COMPANY_NAME = "ONK GROUP LTD";
+const COMPANY_ADDRESS = "SUITE 3001-2, FORICO MALL,\nMISSION STREET, OSU\nACCRA, GHANA";
+const COMPANY_PHONE = "+233302799514";
+const COMPANY_EMAIL = "info@onkgroup.co.uk";
 
 function resolveAssetPath(
-  asset: "logo" | "banner" | "stamp",
+  asset: "logo" | "banner" | "stamp" | "po_banner",
   company?: string | null
 ) {
   const defaults: Record<string, string> = {
@@ -345,7 +141,7 @@ export const generatePurchaseOrderPDFNEW = (
   inline: boolean = false
 ) => {
   const doc = new PDFDocument({
-    margin: 20,
+    margin: 0,
     size: "A4",
     bufferPages: true,
   });
@@ -358,7 +154,6 @@ export const generatePurchaseOrderPDFNEW = (
 
   doc.pipe(res);
 
-  // Fonts
   doc.registerFont("Helvetica", "Helvetica");
   doc.registerFont("Helvetica-Bold", "Helvetica-Bold");
   doc.registerFont("Times-Roman", "Times-Roman");
@@ -367,69 +162,197 @@ export const generatePurchaseOrderPDFNEW = (
   const bannerPath = resolveAssetPath("banner", company);
   const stampPath = resolveAssetPath("stamp", company);
   const logoPath = resolveAssetPath("logo", company);
+  const poBanner = resolveAssetPath("po_banner", company);
 
-  let currentY = 0;
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const leftBandWidth = 40;
+  const contentLeft = leftBandWidth + 20;
+  const contentRight = pageWidth - 30;
+  const contentWidth = contentRight - contentLeft;
 
-  // Banner
+  const dark = "#202020";
+  const sideGreen = "#a7b670";
+  const headerGreen = "#6e7f3a";
+  const textColor = "#ffffff";
+
+  doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+  doc.fillColor(textColor);
+  doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
+  doc.fillColor(textColor);
+  doc.strokeColor(textColor);
+
+  let currentY = 40;
+
   try {
-    doc.image(bannerPath, 0, 0, { width: doc.page.width, height: 100 });
-    currentY += 110;
+    const logoWidth = 140;
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.image(logoPath, logoX, currentY, { width: logoWidth });
+    currentY += 90;
   } catch {
-    currentY += 10;
+    currentY += 40;
   }
 
-  // Date
-  doc
-    .fontSize(10)
-    .font("Times-Bold")
-    .text(
-      new Date(po.createdAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      2,
-      currentY,
-      { align: "left" }
-    );
-  currentY = doc.y + 20;
+  doc.fontSize(22).font("Helvetica-Bold").text("PURCHASE ORDER", contentLeft, currentY, {
+    align: "left",
+  });
+  const titleBottomY = doc.y + 2;
+  doc.moveTo(contentLeft, titleBottomY).lineTo(contentLeft + 220, titleBottomY).stroke();
+  currentY = titleBottomY + 20;
 
-  // Supplier block
-  doc.fontSize(11).font("Times-Bold").text("Supplier:", 2, currentY);
-  currentY += 15;
-  doc.fontSize(10).font("Times-Roman");
-  doc.text(po.supplierName || "", 2, currentY);
-  currentY += 15;
+  const poBoxWidth = 260;
+  const poBoxHeight = 40;
+  const poBoxX = contentRight - poBoxWidth;
+  const poBoxY = currentY - 10;
+
+  doc.fillColor(headerGreen).rect(poBoxX, poBoxY, poBoxWidth, poBoxHeight).fill();
+  doc.strokeColor(textColor).rect(poBoxX, poBoxY, poBoxWidth, poBoxHeight).stroke();
+  doc.moveTo(poBoxX + poBoxWidth / 2, poBoxY)
+    .lineTo(poBoxX + poBoxWidth / 2, poBoxY + poBoxHeight)
+    .stroke();
+  doc.moveTo(poBoxX, poBoxY + poBoxHeight / 2)
+    .lineTo(poBoxX + poBoxWidth, poBoxY + poBoxHeight / 2)
+    .stroke();
+
+  const orderDateText = new Date(po.createdAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  doc.fillColor(textColor).font("Helvetica-Bold").fontSize(9);
+  doc.text("P.O. #", poBoxX + 8, poBoxY + 4);
+  doc.text("ORDER DATE", poBoxX + poBoxWidth / 2 + 8, poBoxY + 4);
+  doc.font("Helvetica").fontSize(10);
+  doc.text(po.poNumber, poBoxX + 8, poBoxY + poBoxHeight / 2 + 4);
+  doc.text(orderDateText, poBoxX + poBoxWidth / 2 + 8, poBoxY + poBoxHeight / 2 + 4);
+
+  const separatorY = poBoxY + poBoxHeight + 18;
+  doc.moveTo(contentLeft, separatorY).lineTo(contentRight, separatorY).stroke();
+  currentY = separatorY + 18;
+
+  const vendorHeaderHeight = 24;
+  const vendorBodyHeight = 80;
+  const vendorBoxY = currentY;
+
+  doc.fillColor(headerGreen).rect(contentLeft, vendorBoxY, contentWidth, vendorHeaderHeight).fill();
+  doc.strokeColor(textColor)
+    .rect(contentLeft, vendorBoxY, contentWidth, vendorHeaderHeight + vendorBodyHeight)
+    .stroke();
+  const vendorMidX = contentLeft + contentWidth / 2;
+  doc.moveTo(vendorMidX, vendorBoxY)
+    .lineTo(vendorMidX, vendorBoxY + vendorHeaderHeight + vendorBodyHeight)
+    .stroke();
+
+  doc.fillColor(textColor).font("Helvetica-Bold").fontSize(10);
+  doc.text("VENDOR", contentLeft + 8, vendorBoxY + 6);
+  doc.text("SHIP TO", vendorMidX + 8, vendorBoxY + 6);
+
+  const vendorBodyY = vendorBoxY + vendorHeaderHeight + 6;
+  const vendorTextWidth = contentWidth / 2 - 16;
+
+  const vendorLines: string[] = [];
+  if (po.supplierName) vendorLines.push(po.supplierName);
   if (po.supplierAddress) {
-    (po.supplierAddress.split("\n")).forEach((line) => {
-      doc.text(line.trim(), 2, currentY);
-      currentY += 15;
-    });
+    vendorLines.push(
+      ...po.supplierAddress
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+    );
   }
-  if (po.supplierEmail) {
-    doc.text(`Email: ${po.supplierEmail}`, 2, currentY);
-    currentY += 15;
+  if (po.supplierEmail) vendorLines.push(po.supplierEmail);
+  if (po.supplierPhone) vendorLines.push(po.supplierPhone);
+
+  const shipToLines: string[] = [];
+  shipToLines.push(COMPANY_NAME);
+  COMPANY_ADDRESS.split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .forEach((l) => shipToLines.push(l));
+
+  doc.font("Helvetica").fontSize(9);
+  doc.text(vendorLines.join("\n"), contentLeft + 8, vendorBodyY, {
+    width: vendorTextWidth,
+    lineGap: 2,
+  });
+  doc.text(shipToLines.join("\n"), vendorMidX + 8, vendorBodyY, {
+    width: vendorTextWidth,
+    lineGap: 2,
+  });
+
+  currentY = vendorBoxY + vendorHeaderHeight + vendorBodyHeight + 30;
+
+  const shippingHeaderHeight = 24;
+  const shippingBodyHeight = 30;
+  const shippingBoxY = currentY;
+  const shippingColWidth = contentWidth / 3;
+
+  doc.fillColor(headerGreen)
+    .rect(contentLeft, shippingBoxY, shippingColWidth, shippingHeaderHeight)
+    .rect(contentLeft + shippingColWidth, shippingBoxY, shippingColWidth, shippingHeaderHeight)
+    .rect(contentLeft + shippingColWidth * 2, shippingBoxY, shippingColWidth, shippingHeaderHeight)
+    .fill();
+
+  doc.strokeColor(textColor)
+    .rect(contentLeft, shippingBoxY, contentWidth, shippingHeaderHeight + shippingBodyHeight)
+    .stroke();
+
+  doc.moveTo(contentLeft + shippingColWidth, shippingBoxY)
+    .lineTo(contentLeft + shippingColWidth, shippingBoxY + shippingHeaderHeight + shippingBodyHeight)
+    .stroke();
+  doc.moveTo(contentLeft + shippingColWidth * 2, shippingBoxY)
+    .lineTo(
+      contentLeft + shippingColWidth * 2,
+      shippingBoxY + shippingHeaderHeight + shippingBodyHeight
+    )
+    .stroke();
+  doc.moveTo(contentLeft, shippingBoxY + shippingHeaderHeight)
+    .lineTo(contentRight, shippingBoxY + shippingHeaderHeight)
+    .stroke();
+
+  doc.fillColor(textColor).font("Helvetica-Bold").fontSize(10);
+  doc.text("SHIPPING SERVICE", contentLeft + 8, shippingBoxY + 6);
+  doc.text("SHIPPING METHOD", contentLeft + shippingColWidth + 8, shippingBoxY + 6);
+  doc.text("DELIVERY PERIOD", contentLeft + shippingColWidth * 2 + 8, shippingBoxY + 6);
+
+  const shippingBodyY = shippingBoxY + shippingHeaderHeight + 6;
+  doc.font("Helvetica").fontSize(9);
+
+  const shippingServiceText = "";
+  const shippingMethodText = po.paymentTerms || "";
+  let deliveryText = "";
+  if (po.expectedDeliveryDate) {
+    deliveryText = new Date(po.expectedDeliveryDate).toLocaleDateString();
   }
-  if (po.supplierPhone) {
-    doc.text(`Phone: ${po.supplierPhone}`, 2, currentY);
-    currentY += 15;
+
+  doc.text(shippingServiceText, contentLeft + 8, shippingBodyY, {
+    width: shippingColWidth - 16,
+    align: "center",
+  });
+  doc.text(shippingMethodText, contentLeft + shippingColWidth + 8, shippingBodyY, {
+    width: shippingColWidth - 16,
+    align: "center",
+  });
+  doc.text(deliveryText, contentLeft + shippingColWidth * 2 + 8, shippingBodyY, {
+    width: shippingColWidth - 16,
+    align: "center",
+  });
+
+  currentY = shippingBoxY + shippingHeaderHeight + shippingBodyHeight + 30;
+
+  if (currentY > pageHeight - 260) {
+    doc.addPage();
+    doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+    doc.fillColor(textColor);
+    doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
+    doc.fillColor(textColor);
+    doc.strokeColor(textColor);
+    currentY = 40;
   }
-  currentY = doc.y + 10;
 
-  // Subject
-  doc.fontSize(16).font("Times-Bold").text("PURCHASE ORDER", 2, currentY);
-  currentY = doc.y + 20;
-  doc.fontSize(11).font("Times-Roman").text(`PO Number: ${po.poNumber}`, 2, currentY);
-  currentY = doc.y + 20;
-
-  // Logo
-  try {
-    doc.image(logoPath, doc.page.width - 120, 120, { width: 100 });
-  } catch {}
-
-  // Table
   const itemHeight = 30;
-  const pageWidth = doc.page.width - 4;
+  const tableWidth = contentWidth;
   const currency = po as any;
   const ccy = currency.currency || "GHC";
   const toNum = (v: any) => {
@@ -450,36 +373,54 @@ export const generatePurchaseOrderPDFNEW = (
   });
   if (lineItems.length > 0) {
     const renderHeader = () => {
+      doc.fillColor(textColor).font("Helvetica-Bold").fontSize(10);
+      doc.x = contentLeft;
+      doc.y = currentY;
       doc.table({
         columnStyles: (i: number) =>
-          [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15][i],
+          [tableWidth * 0.1, tableWidth * 0.5, tableWidth * 0.12, tableWidth * 0.14, tableWidth * 0.14][i],
         rowStyles: {
           minHeight: itemHeight - 5,
           padding: 5,
           align: { x: "center", y: "bottom" },
-          backgroundColor: "#F8F8F8",
+          backgroundColor: headerGreen,
         },
       }).row(["No.", "Description", "Qty", `Unit Price (${ccy})`, `Total (${ccy})`]);
+      currentY = doc.y;
     };
     renderHeader();
     lineItems.forEach((row) => {
       if (doc.y > doc.page.height - 120) {
         doc.addPage();
+        doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+        doc.fillColor(textColor);
+        doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
+        doc.fillColor(textColor);
+        doc.strokeColor(textColor);
+        currentY = 40;
         renderHeader();
       }
+      doc.fillColor(textColor).font("Helvetica").fontSize(9);
+      doc.x = contentLeft;
       doc.table({
-        columnStyles: [pageWidth * 0.10, pageWidth * 0.45, pageWidth * 0.15, pageWidth * 0.15, pageWidth * 0.15],
+        columnStyles: [
+          tableWidth * 0.1,
+          tableWidth * 0.5,
+          tableWidth * 0.12,
+          tableWidth * 0.14,
+          tableWidth * 0.14,
+        ],
         rowStyles: {
           minHeight: itemHeight - 5,
           padding: 5,
           align: { x: "center", y: "bottom" },
         },
       }).row(row as any);
+      currentY = doc.y;
     });
-    currentY = doc.y + 10;
+    currentY = doc.y + 20;
   }
 
-  // Totals
   const subtotal = toNum(po.subtotal);
   const discountAmount = toNum(po.discount);
   const vatRate = toNum(po.vatRate);
@@ -496,59 +437,39 @@ export const generatePurchaseOrderPDFNEW = (
   ];
 
   doc.fontSize(12).font("Times-Bold");
+  doc.fillColor(textColor);
   totals.forEach((t) => {
+    const isTotal = t.label.startsWith("TOTAL");
+    const bg = isTotal ? headerGreen : "#333333";
+    doc.x = contentLeft;
     doc.table({
-      columnStyles: (i: number) => [pageWidth * 0.85, pageWidth * 0.15][i],
+      columnStyles: (i: number) => [tableWidth * 0.7, tableWidth * 0.3][i],
       rowStyles: {
         minHeight: itemHeight - 5,
         padding: 5,
         align: { x: "center", y: "bottom" },
-        backgroundColor: "#F0F0F0",
+        backgroundColor: bg,
       },
     }).row([t.label.trim(), t.value]);
   });
 
   currentY = doc.y + 20;
 
-  // Payment terms and expected delivery
-  if (currentY > doc.page.height - 180) {
+  if (currentY > pageHeight - 100) {
     doc.addPage();
-    currentY = 20;
-  }
-  doc.fontSize(10).font("Times-Bold").text("Payment Terms:", 2, currentY);
-  currentY += 15;
-  if (currentY > doc.page.height - 120) {
-    doc.addPage();
-    currentY = 20;
-  }
-  doc.fontSize(10).font("Times-Roman").text(po.paymentTerms || "N/A", 2, currentY, {
-    width: pageWidth * 0.9,
-  });
-  currentY += 20;
-  if (po.expectedDeliveryDate) {
-    if (currentY > doc.page.height - 60) {
-      doc.addPage();
-      currentY = 20;
-    }
-    doc
-      .fontSize(10)
-      .font("Times-Bold")
-      .text(
-        `Expected Delivery Date: ${new Date(po.expectedDeliveryDate).toLocaleDateString()}`,
-        2,
-        currentY
-      );
-    currentY += 20;
+    doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+    doc.fillColor(textColor);
+    doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
+    doc.fillColor(textColor);
+    doc.strokeColor(textColor);
+    currentY = pageHeight - 80;
   }
 
-  // Stamp
-  if (currentY > doc.page.height - 140) {
-    doc.addPage();
-    currentY = 20;
-  }
-  try {
-    doc.image(stampPath, 2, currentY, { width: 150, height: 100 });
-  } catch {}
+  const signatureY = pageHeight - 70;
+  doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
+  doc.moveTo(contentLeft + 70, signatureY + 12)
+    .lineTo(contentLeft + 270, signatureY + 12)
+    .stroke();
 
   doc.end();
 };
