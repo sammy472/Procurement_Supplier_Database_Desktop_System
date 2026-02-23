@@ -150,8 +150,8 @@ export const generatePurchaseOrderPDFNEW = (
 
   const ant_savvy_address = "64 RANGOON LANE,\nCANTOMENTS ACCRA, GHANA\n+233302799514\ninfo@ant-savvy.com"
   const onk_group_address = "SUITE 3001-2, FORICO MALL,\nMISSION STREET, OSU\nACCRA, GHANA\n+233302799514\ninfo@onkgroup.co.uk"
-  const COMPANY_NAME = company === "ONK_GROUP" ? "ONK GROUP LTD" : "ANT SAVVY INVESTMENT LTD" ;
-  const COMPANY_ADDRESS = company === "ONK_GROUP" ? onk_group_address : ant_savvy_address;
+  const company_name = company === "ONK_GROUP" ? "ONK GROUP LTD" : "ANT SAVVY INVESTMENT LTD" ;
+  const company_address = company === "ONK_GROUP" ? onk_group_address : ant_savvy_address;
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
@@ -269,8 +269,8 @@ export const generatePurchaseOrderPDFNEW = (
   if (po.supplierPhone) vendorLines.push(po.supplierPhone);
 
   const shipToLines: string[] = [];
-  shipToLines.push(COMPANY_NAME);
-  COMPANY_ADDRESS.split("\n")
+  shipToLines.push(company_name);
+  company_address.split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
     .forEach((l) => shipToLines.push(l));
