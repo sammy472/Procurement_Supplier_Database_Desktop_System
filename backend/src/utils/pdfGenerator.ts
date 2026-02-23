@@ -198,10 +198,12 @@ export const generatePurchaseOrderPDFNEW = (
   }
 
   doc.fontSize(22).font("Helvetica-Bold").text("PURCHASE ORDER  ", contentLeft, currentY, {
-    align: company === "ONK_GROUP" ? "left" : "right",
+    align: company === "ONK_GROUP" ? "left" : "center",
   });
   const titleBottomY = doc.y + 2;
-  doc.moveTo(pageWidth, titleBottomY).lineTo(pageWidth - contentLeft - 250, titleBottomY).stroke();
+  if (company === "ONK_GROUP") {
+    doc.moveTo(contentLeft, titleBottomY).lineTo(contentLeft + 250, titleBottomY).stroke();
+  }
   currentY = titleBottomY + 20;
 
   const poBoxWidth = 260;
