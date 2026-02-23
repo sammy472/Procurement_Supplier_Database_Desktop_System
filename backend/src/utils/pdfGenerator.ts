@@ -201,7 +201,7 @@ export const generatePurchaseOrderPDFNEW = (
     align: company === "ONK_GROUP" ? "left" : "right",
   });
   const titleBottomY = doc.y + 2;
-  doc.moveTo(pageWidth, titleBottomY).lineTo(pageWidth - contentLeft - 220, titleBottomY).stroke();
+  doc.moveTo(pageWidth, titleBottomY).lineTo(pageWidth - contentLeft - 250, titleBottomY).stroke();
   currentY = titleBottomY + 20;
 
   const poBoxWidth = 260;
@@ -479,11 +479,11 @@ export const generatePurchaseOrderPDFNEW = (
     currentY = pageHeight - 80;
   }
 
-  doc.image(stampPath, contentLeft + 70, doc.y, { width: 80, height: 50 });
+  doc.image(stampPath, contentLeft + 70, doc.y + 10, { width: 80, height: 50 });
   const signatureY = doc.y + 20;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
-  doc.moveTo(contentLeft + 70, signatureY + 12)
-    .lineTo(contentLeft + 270, signatureY + 12)
+  doc.moveTo(contentLeft + 70, signatureY + 20)
+    .lineTo(contentLeft + 150, signatureY + 20)
     .stroke();
 
   doc.end();
