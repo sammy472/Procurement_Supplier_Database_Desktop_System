@@ -103,7 +103,7 @@ interface PurchaseOrderData {
   createdAt: string;
 }
 
-const COMPANY_NAME = "ONK GROUP LTD";
+const COMPANY_NAME ="ONK GROUP LTD";
 const COMPANY_ADDRESS = "SUITE 3001-2, FORICO MALL,\nMISSION STREET, OSU\nACCRA, GHANA";
 const COMPANY_PHONE = "+233302799514";
 const COMPANY_EMAIL = "info@onkgroup.co.uk";
@@ -148,6 +148,11 @@ export const generatePurchaseOrderPDFNEW = (
     bufferPages: true,
   });
 
+  const ant_savvy_address = "64 RANGOON LANE,\nCANTOMENTS ACCRA, GHANA\n+233302799514\ninfo@ant-savvy.com"
+  const onk_group_address = "SUITE 3001-2, FORICO MALL,\nMISSION STREET, OSU\nACCRA, GHANA\n+233302799514\ninfo@onkgroup.co.uk"
+  const COMPANY_NAME = company === "ONK_GROUP" ? "ONK GROUP LTD" : "ANT SAVVY INVESTMENT LTD" ;
+  const COMPANY_ADDRESS = company === "ONK_GROUP" ? onk_group_address : ant_savvy_address;
+
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
@@ -162,6 +167,7 @@ export const generatePurchaseOrderPDFNEW = (
   doc.registerFont("Times-Bold", "Times-Bold");
 
   const logoPath = resolveAssetPath("logo", company);
+  const stampPath = resolveAssetPath("stamp", company);
 
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
@@ -170,17 +176,17 @@ export const generatePurchaseOrderPDFNEW = (
   const contentRight = pageWidth - 30;
   const contentWidth = contentRight - contentLeft;
 
-  const dark = "#ffffff";
+  const white = "#ffffff";
   const sideGreen = "#0d0d0cff";
-  const headerGreen = "#6e7f3a";
+  const headerGreen = company === "ONK_GROUP" ? "#6e7f3a" : "#007bff";
   const textColor = "#202020";
-  doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+  doc.rect(0, 0, pageWidth, pageHeight).fill(white);
   doc.fillColor(textColor);
   doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
   doc.fillColor(textColor);
   doc.strokeColor(textColor);
 
-  let currentY = 40;
+  let currentY = 10;
 
   try {
     const logoWidth = 140;
@@ -341,7 +347,7 @@ export const generatePurchaseOrderPDFNEW = (
 
   if (currentY > pageHeight - 260) {
     doc.addPage();
-    doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+    doc.rect(0, 0, pageWidth, pageHeight).fill(white);
     doc.fillColor(textColor);
     doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
     doc.fillColor(textColor);
@@ -390,7 +396,7 @@ export const generatePurchaseOrderPDFNEW = (
     lineItems.forEach((row) => {
       if (doc.y > doc.page.height - 120) {
         doc.addPage();
-        doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+        doc.rect(0, 0, pageWidth, pageHeight).fill(white);
         doc.fillColor(textColor);
         doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
         doc.fillColor(textColor);
@@ -425,7 +431,7 @@ export const generatePurchaseOrderPDFNEW = (
   const taxable = Math.max(subtotal - discountAmount, 0);
   if (doc.y > doc.page.height - 200) {
     doc.addPage();
-    doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+    doc.rect(0, 0, pageWidth, pageHeight).fill(white);
     doc.fillColor(textColor);
     doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
     doc.fillColor(textColor);
@@ -447,7 +453,7 @@ export const generatePurchaseOrderPDFNEW = (
     const bg = isTotal ? headerGreen : "#333333";
     doc.x = contentLeft;
     doc.table({
-      columnStyles: (i: number) => [tableWidth * 0.7, tableWidth * 0.3][i],
+      columnStyles: (i: number) => [tableWidth * 0.86, tableWidth * 0.14][i],
       rowStyles: {
         minHeight: itemHeight - 5,
         padding: 5,
@@ -465,7 +471,7 @@ export const generatePurchaseOrderPDFNEW = (
 
   if (currentY > pageHeight - 100) {
     doc.addPage();
-    doc.rect(0, 0, pageWidth, pageHeight).fill(dark);
+    doc.rect(0, 0, pageWidth, pageHeight).fill(white);
     doc.fillColor(textColor);
     doc.rect(0, 0, leftBandWidth, pageHeight).fill(sideGreen);
     doc.fillColor(textColor);
@@ -473,6 +479,7 @@ export const generatePurchaseOrderPDFNEW = (
     currentY = pageHeight - 80;
   }
 
+  doc.image(logoPath, contentLeft + 70, doc.y + 32);
   const signatureY = doc.y + 20;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
   doc.moveTo(contentLeft + 70, signatureY + 12)
