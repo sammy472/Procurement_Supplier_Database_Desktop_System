@@ -479,7 +479,7 @@ export const generatePurchaseOrderPDFNEW = (
     currentY = pageHeight - 80;
   }
 
-  doc.image(logoPath, contentLeft + 70, doc.y + 32);
+  doc.image(stampPath, contentLeft + 70, doc.y + 32);
   const signatureY = doc.y + 20;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
   doc.moveTo(contentLeft + 70, signatureY + 12)
