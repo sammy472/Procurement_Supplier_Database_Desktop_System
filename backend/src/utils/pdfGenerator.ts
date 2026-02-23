@@ -190,7 +190,7 @@ export const generatePurchaseOrderPDFNEW = (
 
   try {
     const logoWidth = 140;
-    const logoX = (pageWidth - logoWidth) / 2;
+    const logoX = company === "ANT_SAVY" ? contentLeft : (pageWidth - logoWidth) / 2;
     doc.image(logoPath, logoX, currentY, { width: logoWidth });
     currentY += 90;
   } catch {
@@ -198,7 +198,7 @@ export const generatePurchaseOrderPDFNEW = (
   }
 
   doc.fontSize(22).font("Helvetica-Bold").text("PURCHASE ORDER", contentLeft, currentY, {
-    align: "left",
+    align: company === "ONK_GROUP" ? "left" : "right",
   });
   const titleBottomY = doc.y + 2;
   doc.moveTo(contentLeft, titleBottomY).lineTo(contentLeft + 220, titleBottomY).stroke();
