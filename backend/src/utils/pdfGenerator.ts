@@ -197,11 +197,11 @@ export const generatePurchaseOrderPDFNEW = (
     currentY += 40;
   }
 
-  doc.fontSize(22).font("Helvetica-Bold").text("PURCHASE ORDER", contentLeft, currentY, {
+  doc.fontSize(22).font("Helvetica-Bold").text("PURCHASE ORDER  ", contentLeft, currentY, {
     align: company === "ONK_GROUP" ? "left" : "right",
   });
   const titleBottomY = doc.y + 2;
-  doc.moveTo(contentLeft, titleBottomY).lineTo(contentLeft + 220, titleBottomY).stroke();
+  doc.moveTo(pageWidth, titleBottomY).lineTo(pageWidth - contentLeft - 220, titleBottomY).stroke();
   currentY = titleBottomY + 20;
 
   const poBoxWidth = 260;
@@ -453,7 +453,7 @@ export const generatePurchaseOrderPDFNEW = (
     const bg = isTotal ? headerGreen : "#333333";
     doc.x = contentLeft;
     doc.table({
-      columnStyles: (i: number) => [tableWidth * 0.86, tableWidth * 0.14][i],
+      columnStyles: (i: number) => [tableWidth * 0.72, tableWidth * 0.28][i],
       rowStyles: {
         minHeight: itemHeight - 5,
         padding: 5,
@@ -479,7 +479,7 @@ export const generatePurchaseOrderPDFNEW = (
     currentY = pageHeight - 80;
   }
 
-  doc.image(stampPath, contentLeft + 70, doc.y - 32, { width: 60, height: 30 });
+  doc.image(stampPath, contentLeft + 70, doc.y, { width: 80, height: 50 });
   const signatureY = doc.y + 20;
   doc.fontSize(10).font("Helvetica").fillColor(textColor).text("signature:", contentLeft, signatureY);
   doc.moveTo(contentLeft + 70, signatureY + 12)
