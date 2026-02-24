@@ -178,7 +178,7 @@ export const generatePurchaseOrderPDFNEW = (
 
   const white = "#ffffff";
   const sideGreen = "#0d0d0cff";
-  const headerGreen = company === "ONK_GROUP" ? "#6e7f3a" : "#007bff";
+  const headerGreen = company === "ONK_GROUP" ? "#6e7f3a" : "#278af5ff";
   const textColor = "#202020";
   doc.rect(0, 0, pageWidth, pageHeight).fill(white);
   doc.fillColor(textColor);
@@ -486,7 +486,7 @@ export const generatePurchaseOrderPDFNEW = (
   doc.moveTo(contentLeft + 60, signatureY + 50)
     .lineTo(contentLeft + 170, signatureY + 50)
     .stroke();
-  doc.fontSize(12).font("Helvetica").fillColor(textColor).text("Signature:", contentLeft, doc.y+ 80);
+  doc.fontSize(12).font("Helvetica").fillColor(textColor).text("Signature:", contentLeft, doc.y+ 50);
 
   doc.end();
 };
