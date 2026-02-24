@@ -927,7 +927,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   // Salutation
   doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Subject/Reference
   const subjectText = quotation.projectTitle 
@@ -951,7 +951,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
     align: 'justify'
   });
   
-  currentY = doc.y + 40;
+  currentY = doc.y + 20;
 
   // Delivery period
   doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
@@ -1011,7 +1011,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   // PROFORMA INVOICE Section
   doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Bill From / Bill To already drawn above; continue layout
 
@@ -1022,9 +1022,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
       month: 'long',
       day: 'numeric'
     }),2, currentY, { align: 'left' });
-  
-  currentY = doc.y + 30;
-  
+    
   currentY = doc.y + 25;
   if (currentY > doc.page.height - 220) {
     doc.addPage();
@@ -1181,7 +1179,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   // Salutation
   doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Subject/Reference
   const subjectText = quotation.projectTitle 
@@ -1205,7 +1203,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
     align: 'justify'
   });
   
-  currentY = doc.y + 40;
+  currentY = doc.y + 20;
 
   // Delivery period
   doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
@@ -1265,7 +1263,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   // PROFORMA INVOICE Section
   doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Bill From / Bill To already drawn above; continue layout
 
@@ -1277,9 +1275,8 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
       day: 'numeric'
     }),2, currentY, { align: 'left' });
   
-  currentY = doc.y + 30;
-  
   currentY = doc.y + 25;
+
   if (currentY > doc.page.height - 220) {
     doc.addPage();
     currentY = 20;
