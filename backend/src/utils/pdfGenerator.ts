@@ -483,10 +483,10 @@ export const generatePurchaseOrderPDFNEW = (
 
   doc.image(stampPath, contentLeft + 70, doc.y + 10, { width: 80, height: 50 });
   const signatureY = doc.y + 20;
-  doc.moveTo(contentLeft + 50, signatureY + 50)
-    .lineTo(contentLeft + 150, signatureY + 50)
+  doc.moveTo(contentLeft + 60, signatureY + 50)
+    .lineTo(contentLeft + 170, signatureY + 50)
     .stroke();
-  doc.fontSize(12).font("Helvetica").fillColor(textColor).text("Signature:", contentLeft, signatureY + 50);
+  doc.fontSize(12).font("Helvetica").fillColor(textColor).text("Signature:", contentLeft, doc.y);
 
   doc.end();
 };
