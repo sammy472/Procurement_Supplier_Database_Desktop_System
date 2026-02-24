@@ -9,11 +9,10 @@ import { buildBrandedEmail, getBrandAssets, sendEmail } from "../utils/email";
 
 type RfqRow = typeof schema.rfqs.$inferSelect;
 
-function autoCloseStatus(status: string, closeDate: Date | null): string {
-  if (status !== "closed" && closeDate && closeDate.getTime() < Date.now()) {
-    return "closed";
-  }
-  return status;
+function computeStatus(resolved: boolean | null | undefined, closeDate: Date | null): "sent" | "active" | "closed" {
+  if (resolved) return "sent";
+  if (closeDate && new Date(closeDate).getTime() < Date.now()) return "closed";
+  return "active";
 }
 
 export const getRfqs = async (req: AuthRequest, res: Response) => {
@@ -45,7 +44,7 @@ export const getRfqs = async (req: AuthRequest, res: Response) => {
       const items = (await qb) as any[];
       const updated: any[] = [];
       for (const rfq of items) {
-        const newStatus = autoCloseStatus(rfq.status, rfq.closeDate);
+        const newStatus = computeStatus(rfq.resolved, rfq.closeDate);
         if (newStatus !== rfq.status) {
           const [u] = await db
             .update(rfqsTable)
@@ -85,7 +84,7 @@ export const getRfqs = async (req: AuthRequest, res: Response) => {
     if (offsetParam > 0) qb = qb.offset(offsetParam);
     const items = await qb;
     for (const rfq of items as any[]) {
-      const newStatus = autoCloseStatus(rfq.status, rfq.closeDate);
+      const newStatus = computeStatus(rfq.resolved, rfq.closeDate);
       if (newStatus !== rfq.status) {
         await db
           .update(rfqsTable)
@@ -123,7 +122,7 @@ export const getRfq = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "RFQ not found" });
     }
     const rfq = rfqsRows[0];
-    const newStatus = autoCloseStatus(rfq.status, rfq.closeDate);
+    const newStatus = computeStatus((rfq as any).resolved, rfq.closeDate);
     if (newStatus !== rfq.status) {
       await db
         .update(rfqsTable)
@@ -169,11 +168,12 @@ export const createRfq = async (req: AuthRequest, res: Response) => {
     const rfqsTable = getTable("rfqs", company);
     const assignmentsTable = getTable("rfqAssignments", company);
 
-    const { subject, senderAddress, items, openDate, closeDate, assigneeIds } = req.body;
+    const { subject, senderAddress, items, openDate, closeDate, assigneeIds, resolved = false } = req.body;
     if (!subject || !senderAddress || !openDate || !closeDate || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    const statusDerived = computeStatus(Boolean(resolved), new Date(closeDate));
     const [rfq] = (await db
       .insert(rfqsTable)
       .values({
@@ -182,7 +182,8 @@ export const createRfq = async (req: AuthRequest, res: Response) => {
         items,
         openDate: new Date(openDate),
         closeDate: new Date(closeDate),
-        status: "active",
+        resolved: Boolean(resolved),
+        status: statusDerived,
         createdBy: userId,
       })
       .returning()) as RfqRow[];
@@ -284,11 +285,15 @@ export const updateRfq = async (req: AuthRequest, res: Response) => {
     }
     const previous = existingRows[0];
 
-    const { subject, senderAddress, items, openDate, closeDate, status, assigneeIds } = req.body;
-
-    if (status === "sent" && previous.closeDate && new Date(previous.closeDate).getTime() < Date.now()) {
+    const { subject, senderAddress, items, openDate, closeDate, resolved, assigneeIds } = req.body;
+    if (resolved === true && previous.closeDate && new Date(previous.closeDate).getTime() < Date.now()) {
       return res.status(400).json({ error: "Cannot mark resolved after the closing date" });
     }
+    const nextCloseDate = closeDate ? new Date(closeDate) : previous.closeDate;
+    const statusDerived = computeStatus(
+      resolved !== undefined ? Boolean(resolved) : (previous as any).resolved,
+      nextCloseDate
+    );
 
     const [rfq] = await db
       .update(rfqsTable)
@@ -298,7 +303,8 @@ export const updateRfq = async (req: AuthRequest, res: Response) => {
         ...(Array.isArray(items) ? { items } : {}),
         ...(openDate ? { openDate: new Date(openDate) } : {}),
         ...(closeDate ? { closeDate: new Date(closeDate) } : {}),
-        ...(status ? { status } : {}),
+        ...(resolved !== undefined ? { resolved: Boolean(resolved) } : {}),
+        status: statusDerived,
         updatedAt: new Date(),
       })
       .where(eq(rfqsTable.id, id))
@@ -417,10 +423,10 @@ export const toggleResolved = async (req: AuthRequest, res: Response) => {
     if (resolved === true && current.closeDate && new Date(current.closeDate).getTime() < Date.now()) {
       return res.status(400).json({ error: "Cannot mark resolved after the closing date" });
     }
-    const nextStatus = resolved === true ? ("sent" as any) : ("active" as any);
+    const nextStatus = computeStatus(Boolean(resolved), current.closeDate);
     const [rfq] = await db
       .update(rfqsTable)
-      .set({ status: nextStatus, updatedAt: new Date() })
+      .set({ resolved: Boolean(resolved), status: nextStatus, updatedAt: new Date() })
       .where(eq(rfqsTable.id, id))
       .returning();
     res.json({ rfq });

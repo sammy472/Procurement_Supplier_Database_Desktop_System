@@ -70,7 +70,7 @@ export default function Dashboard() {
           return (
             <div
               key={card.title}
-              className="card group hover:scale-105 transform"
+              className="card rounded-se-md rounded-es-md group hover:scale-105 transform"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -96,7 +96,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="card">
+        <div className="card rounded-se-md rounded-es-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">RFQs</h2>
             <MdDescription className="w-7 h-7 text-primary-600" />
@@ -173,7 +173,7 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        <div className="card">
+        <div className="card rounded-se-md rounded-es-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tenders</h2>
             <MdEmojiEvents className="w-7 h-7 text-yellow-500" />
@@ -259,7 +259,7 @@ export default function Dashboard() {
       {/* Charts & Data */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Top Suppliers */}
-        <div className="card">
+        <div className="card rounded-se-md rounded-es-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Top Suppliers
@@ -304,7 +304,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quotation Trend Chart */}
-        <div className="card">
+        <div className="card rounded-se-md rounded-es-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Quotation Trend
@@ -369,7 +369,7 @@ export default function Dashboard() {
       {/* Detailed Sections */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Purchase Orders Detail */}
-        <div className="card">
+        <div className="card rounded-se-md rounded-es-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Purchase Orders</h2>
             <MdShoppingCart className="w-7 h-7 text-violet-600" />
@@ -421,7 +421,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quotations Detail */}
-        <div className="card">
+        <div className="card rounded-se-md rounded-es-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Quotations</h2>
             <MdDescription className="w-7 h-7 text-emerald-600" />
