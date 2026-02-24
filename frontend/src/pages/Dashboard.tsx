@@ -383,7 +383,7 @@ export default function Dashboard() {
             ))}
           </div>
           {/* Recent POs */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-64 overflow-y-auto">
             {stats?.recentPurchaseOrders?.length > 0 ? (
               <table className="table">
                 <thead>
@@ -435,7 +435,7 @@ export default function Dashboard() {
             ))}
           </div>
           {/* Recent Quotations */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-64 overflow-y-auto">
             {stats?.recentQuotations?.length > 0 ? (
               <table className="table">
                 <thead>
