@@ -178,7 +178,7 @@ export const generatePurchaseOrderPDFNEW = (
 
   const white = "#ffffff";
   const sideGreen = "#0d0d0cff";
-  const headerGreen = company === "ONK_GROUP" ? "#6e7f3a" : "#2210ecff";
+  const headerGreen = company === "ONK_GROUP" ? "#6e7f3a" : "#007bff";
   const textColor = "#202020";
   doc.rect(0, 0, pageWidth, pageHeight).fill(white);
   doc.fillColor(textColor);
