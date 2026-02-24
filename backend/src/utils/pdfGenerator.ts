@@ -922,12 +922,12 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   ].filter(Boolean) as string[];
   doc.fontSize(10).font('Times-Bold')
     .text(billToLines.join('\n'), rightColX, billBodyY, { width: columnWidth });
-  currentY = Math.max(doc.y, billBodyY) + 20;
+  currentY = Math.max(doc.y, billBodyY) + 30;
 
   // Salutation
   doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Subject/Reference
   const subjectText = quotation.projectTitle 
@@ -951,7 +951,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
     align: 'justify'
   });
   
-  currentY = doc.y + 40;
+  currentY = doc.y + 20;
 
   // Delivery period
   doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
@@ -1011,7 +1011,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   // PROFORMA INVOICE Section
   doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Bill From / Bill To already drawn above; continue layout
 
@@ -1025,7 +1025,6 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   
   currentY = doc.y + 30;
   
-  currentY = doc.y + 25;
   if (currentY > doc.page.height - 220) {
     doc.addPage();
     currentY = 20;
@@ -1044,7 +1043,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
       },
       rowStyles:{
         backgroundColor: headerColor,
-        height: itemHeight + 30,
+        height: itemHeight + 20,
         padding: 5,
         align:{x: 'center', y: 'top' },
       }
@@ -1097,7 +1096,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         minHeight: itemHeight-5,
         padding: 5,
         align:{x: 'center', y: 'bottom' },
-        backgroundColor: '#333333',
+        backgroundColor: '#393737ff',
       }
     }).row([info.label.trim(), info.value as string]);
   });
@@ -1175,12 +1174,12 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   ].filter(Boolean) as string[];
   doc.fontSize(10).font('Times-Bold')
     .text(billToLines.join('\n'), rightColX, billBodyY, { width: columnWidth });
-  currentY = Math.max(doc.y, billBodyY) + 20;
+  currentY = Math.max(doc.y, billBodyY) + 30;
 
   // Salutation
   doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Subject/Reference
   const subjectText = quotation.projectTitle 
@@ -1204,7 +1203,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
     align: 'justify'
   });
   
-  currentY = doc.y + 40;
+  currentY = doc.y + 20;
 
   // Delivery period
   doc.fontSize(12).font('Times-Bold').text('- Delivery Period', 2, currentY);
@@ -1264,7 +1263,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   // PROFORMA INVOICE Section
   doc.fontSize(35).font('Times-Bold').text('PROFORMA INVOICE', doc.page.width*0.25, currentY+30, { align: 'left' });
   
-  currentY = doc.y + 30;
+  currentY = doc.y + 20;
 
   // Bill From / Bill To already drawn above; continue layout
 
@@ -1278,7 +1277,6 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   
   currentY = doc.y + 30;
   
-  currentY = doc.y + 25;
   if (currentY > doc.page.height - 220) {
     doc.addPage();
     currentY = 20;
@@ -1297,7 +1295,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
       },
       rowStyles:{
         backgroundColor: headerColor,
-        height: itemHeight + 30,
+        height: itemHeight + 20,
         padding: 5,
         align:{x: 'center', y: 'top' },
       }
@@ -1322,7 +1320,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   });
 
   //Taxation and Total Amount
-  currentY = doc.y + 20;
+  currentY = doc.y + 30;
   if (currentY > doc.page.height - 220) {
     doc.addPage();
     currentY = 20;
@@ -1350,7 +1348,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
         minHeight: itemHeight-5,
         padding: 5,
         align:{x: 'center', y: 'bottom' },
-        backgroundColor: '#333333',
+        backgroundColor: '#393737ff',
       }
     }).row([info.label.trim(), info.value as string]);
   });
