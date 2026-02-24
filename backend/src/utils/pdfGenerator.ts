@@ -1096,7 +1096,6 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         padding: 5,
         align:{x: 'center', y: 'bottom' },
         backgroundColor: '#333333',
-        textColor: '#ffffff',
       }
     }).row([info.label.trim(), info.value as string]);
   });
@@ -1349,7 +1348,6 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
         padding: 5,
         align:{x: 'center', y: 'bottom' },
         backgroundColor: '#333333',
-        textColor: '#ffffff',
       }
     }).row([info.label.trim(), info.value as string]);
   });
