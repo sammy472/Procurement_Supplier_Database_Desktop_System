@@ -16,6 +16,7 @@ export interface Rfq {
   items: RfqItem[];
   openDate: string;
   closeDate: string;
+  resolved?: boolean;
   status: RfqStatus;
   createdBy: string;
   createdAt: string;

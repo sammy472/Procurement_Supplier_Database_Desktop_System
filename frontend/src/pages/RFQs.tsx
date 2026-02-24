@@ -544,8 +544,12 @@ export default function RFQs() {
               <label className="inline-flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={selectedRfq.status !== "active"}
-                  disabled={selectedRfq.status === "closed"}
+                  checked={Boolean((selectedRfq as any).resolved)}
+                  disabled={
+                    selectedRfq.status === "closed" ||
+                    (selectedRfq.status === "sent" &&
+                      new Date(selectedRfq.closeDate).getTime() < Date.now())
+                  }
                   onChange={(e) => toggleResolved(selectedRfq, e.target.checked)}
                 />
                 <span>Resolved?</span>
