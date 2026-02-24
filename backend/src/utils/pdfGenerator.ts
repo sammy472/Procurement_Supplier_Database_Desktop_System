@@ -875,6 +875,12 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   const bannerPath = resolveAssetPath("banner",company);
   const stampPath = resolveAssetPath("stamp",company);
   const logoPath = resolveAssetPath("logo",company);
+  const headerColor = company === "ONK_GROUP" ? "#6e7f3a" : "#007bff";
+  const companyName = company === "ONK_GROUP" ? "ONK GROUP LTD" : "ANT SAVVY INVESTMENT LTD";
+  const companyAddress =
+    company === "ONK_GROUP"
+      ? "SUITE 3001-2, FORICO MALL,\nMISSION STREET, OSU\nACCRA, GHANA\n+233302799514\ninfo@onkgroup.co.uk"
+      : "64 RANGOON LANE,\nCANTOMENTS ACCRA, GHANA\n+233302799514\ninfo@ant-savvy.com";
 
   // Starting position
   let currentY = 0;
@@ -898,20 +904,25 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   
   currentY = 20 + doc.y;
 
-  // Client Details - Left side (like in template)
-  doc.fontSize(11).font('Times-Bold').text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
-  
-  currentY = doc.y + 10;
-  
-  // Process multi-line address
-  const clientLines = quotation.clientAddress?.split('\n') || [];
-  doc.fontSize(10).font('Times-Bold');
-  clientLines.forEach(line => {
-    doc.text(line.trim(), 2, currentY);
-    currentY += 10;
-  });
-
-  currentY = doc.y + 20;
+  // Billing headers side-by-side
+  const contentLeft = 2;
+  const columnWidth = (doc.page.width - 40) / 2 - 10;
+  const rightColX = contentLeft + columnWidth + 20;
+  const billTopY = currentY;
+  doc.fontSize(12).font('Times-Bold').fillColor(headerColor).text('BILL FROM', contentLeft, billTopY);
+  doc.fontSize(12).font('Times-Bold').fillColor(headerColor).text('BILL TO', rightColX, billTopY);
+  const billBodyY = billTopY + 16;
+  doc.fontSize(10).font('Times-Bold').fillColor("black")
+    .text([companyName, ...companyAddress.split('\n')].join('\n'), contentLeft, billBodyY, { width: columnWidth });
+  const billToLines = [
+    (quotation.clientName || '').split('\n')[0] || quotation.clientName || '',
+    ...(quotation.clientAddress ? quotation.clientAddress.split('\n') : []),
+    (quotation.clientEmail || ''),
+    (quotation.clientPhone || ''),
+  ].filter(Boolean) as string[];
+  doc.fontSize(10).font('Times-Bold')
+    .text(billToLines.join('\n'), rightColX, billBodyY, { width: columnWidth });
+  currentY = Math.max(doc.y, billBodyY) + 20;
 
   // Salutation
   doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
@@ -1002,26 +1013,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
   
   currentY = doc.y + 30;
 
-  const before = doc.y;
-  // Bill To section
-  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL TO:', 2, currentY, { align: 'right' });
-  currentY = doc.y + 10;
-  doc.fontSize(12).font('Times-Bold').fillColor("black").text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
-  
-  const after = doc.y;
-
-  currentY = doc.y - (after - before) - 10;
-  // Supplier Info (ONK GROUP LIMITED)
-  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.fontSize(12).font('Times-Bold').fillColor("black").text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 10;
+  // Bill From / Bill To already drawn above; continue layout
 
   // Date - Top right corner
   doc.fontSize(12).font('Times-Bold')
@@ -1051,7 +1043,7 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
       },
       rowStyles:{
-        backgroundColor: '#6e7f3a',
+        backgroundColor: headerColor,
         height: itemHeight + 30,
         padding: 5,
         align:{x: 'center', y: 'top' },
@@ -1136,6 +1128,12 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   const bannerPath = resolveAssetPath("banner",company);
   const stampPath = resolveAssetPath("stamp",company);
   const logoPath = resolveAssetPath("logo",company);
+  const headerColor = company === "ONK_GROUP" ? "#6e7f3a" : "#007bff";
+  const companyName = company === "ONK_GROUP" ? "ONK GROUP LTD" : "ANT SAVVY INVESTMENT LTD";
+  const companyAddress =
+    company === "ONK_GROUP"
+      ? "SUITE 3001-2, FORICO MALL,\nMISSION STREET, OSU\nACCRA, GHANA\n+233302799514\ninfo@onkgroup.co.uk"
+      : "64 RANGOON LANE,\nCANTOMENTS ACCRA, GHANA\n+233302799514\ninfo@ant-savvy.com";
 
   // Starting position
   let currentY = 0;
@@ -1159,20 +1157,25 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   
   currentY = 20 + doc.y;
 
-  // Client Details - Left side (like in template)
-  doc.fontSize(11).font('Times-Bold').text(quotation.clientName.split('\n')[0] || quotation.clientName, 2, currentY);
-  
-  currentY = doc.y + 10;
-  
-  // Process multi-line address
-  const clientLines = quotation.clientAddress?.split('\n') || [];
-  doc.fontSize(10).font('Times-Bold');
-  clientLines.forEach(line => {
-    doc.text(line.trim(), 2, currentY);
-    currentY += 10;
-  });
-
-  currentY = doc.y + 20;
+  // Billing headers side-by-side
+  const contentLeft = 2;
+  const columnWidth = (doc.page.width - 40) / 2 - 10;
+  const rightColX = contentLeft + columnWidth + 20;
+  const billTopY = currentY;
+  doc.fontSize(12).font('Times-Bold').fillColor(headerColor).text('BILL FROM', contentLeft, billTopY);
+  doc.fontSize(12).font('Times-Bold').fillColor(headerColor).text('BILL TO', rightColX, billTopY);
+  const billBodyY = billTopY + 16;
+  doc.fontSize(10).font('Times-Bold').fillColor("black")
+    .text([companyName, ...companyAddress.split('\n')].join('\n'), contentLeft, billBodyY, { width: columnWidth });
+  const billToLines = [
+    (quotation.clientName || '').split('\n')[0] || quotation.clientName || '',
+    ...(quotation.clientAddress ? quotation.clientAddress.split('\n') : []),
+    (quotation.clientEmail || ''),
+    (quotation.clientPhone || ''),
+  ].filter(Boolean) as string[];
+  doc.fontSize(10).font('Times-Bold')
+    .text(billToLines.join('\n'), rightColX, billBodyY, { width: columnWidth });
+  currentY = Math.max(doc.y, billBodyY) + 20;
 
   // Salutation
   doc.fontSize(11).font('Times-Roman').text('Dear Sir/Madam,', 2, currentY);
@@ -1263,26 +1266,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
   
   currentY = doc.y + 30;
 
-  const before = doc.y;
-  // Bill To section
-  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL TO:', 2, currentY, { align: 'right' });
-  currentY = doc.y + 10;
-  doc.fontSize(12).font('Times-Bold').fillColor("black").text((quotation.clientAddress!.split("\n")).join("\n").trim(), 2, currentY,{align: 'right'});
-  
-  const after = doc.y;
-
-  currentY = doc.y - (after - before) - 10;
-  // Supplier Info (ONK GROUP LIMITED)
-  doc.fontSize(14).font('Times-Bold').fillColor("red").text('BILL FROM:', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.fontSize(12).font('Times-Bold').fillColor("black").text('ONK GROUP LIMITED', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.fontSize(12).font('Times-Bold').text('SUITE 3001-2 FORICO MALL  1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.text('MISSION STREET OSU, ACCRA', 2, currentY, { align: 'left' });
-  currentY = doc.y + 5;
-  doc.text('030 279 9514 / 053 1986 188', 2, currentY, { align: 'left' });
-  currentY = doc.y + 10;
+  // Bill From / Bill To already drawn above; continue layout
 
   // Date - Top right corner
   doc.fontSize(12).font('Times-Bold')
@@ -1312,7 +1296,7 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
         return [pageWidth * 0.10, pageWidth * 0.35, pageWidth * 0.15, pageWidth * 0.25, pageWidth * 0.15][i];
       },
       rowStyles:{
-        backgroundColor: '#6e7f3a',
+        backgroundColor: headerColor,
         height: itemHeight + 30,
         padding: 5,
         align:{x: 'center', y: 'top' },

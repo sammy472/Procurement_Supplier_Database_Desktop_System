@@ -12,6 +12,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthsParam = Math.min(Math.max(parseInt((req.query.months as string) || "6"), 1), 24);
+    const trendStart = new Date(now.getFullYear(), now.getMonth() - (monthsParam - 1), 1);
     const company = req.user?.company;
 
     const suppliersTable = getTable("suppliers", company);
@@ -116,50 +118,105 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         .where(inArray(suppliersTable.id, supplierIds))) as SupplierRow[];
     }
 
-    // Quotation trend (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
+    // Quotation trend (configurable months)
     const quotationTrend = (await db
       .select({
         month: sql<string>`to_char(${quotationsTable.createdAt}, 'YYYY-MM')`,
         count: sql<number>`count(*)`,
       })
       .from(quotationsTable)
-      .where(gte(quotationsTable.createdAt, sixMonthsAgo))
+      .where(gte(quotationsTable.createdAt, trendStart))
       .groupBy(sql`to_char(${quotationsTable.createdAt}, 'YYYY-MM')`)
       .orderBy(sql`to_char(${quotationsTable.createdAt}, 'YYYY-MM')`)) as {
       month: string;
       count: number;
     }[];
 
-    // RFQ trend (last 6 months)
+    // RFQ trend (configurable months)
     const rfqTrend = (await db
       .select({
         month: sql<string>`to_char(${rfqsTable.createdAt}, 'YYYY-MM')`,
         count: sql<number>`count(*)`,
       })
       .from(rfqsTable)
-      .where(gte(rfqsTable.createdAt, sixMonthsAgo))
+      .where(gte(rfqsTable.createdAt, trendStart))
       .groupBy(sql`to_char(${rfqsTable.createdAt}, 'YYYY-MM')`)
       .orderBy(sql`to_char(${rfqsTable.createdAt}, 'YYYY-MM')`)) as {
       month: string;
       count: number;
     }[];
 
-    // Tender trend (last 6 months)
+    // Tender trend (configurable months)
     const tenderTrend = (await db
       .select({
         month: sql<string>`to_char(${tendersTable.createdAt}, 'YYYY-MM')`,
         count: sql<number>`count(*)`,
       })
       .from(tendersTable)
-      .where(gte(tendersTable.createdAt, sixMonthsAgo))
+      .where(gte(tendersTable.createdAt, trendStart))
       .groupBy(sql`to_char(${tendersTable.createdAt}, 'YYYY-MM')`)
       .orderBy(sql`to_char(${tendersTable.createdAt}, 'YYYY-MM')`)) as {
       month: string;
       count: number;
     }[];
+
+    // Purchase Order status breakdown
+    const poStatusCountsRaw = (await db
+      .select({
+        status: purchaseOrdersTable.status,
+        count: sql<number>`count(*)`,
+      })
+      .from(purchaseOrdersTable)
+      .groupBy(purchaseOrdersTable.status)) as { status: string; count: number }[];
+    const poStatusCounts = poStatusCountsRaw.reduce<Record<string, number>>((acc, row) => {
+      acc[row.status] = parseInt(row.count?.toString() || "0");
+      return acc;
+    }, {});
+
+    // Quotation status breakdown
+    const quotationStatusCountsRaw = (await db
+      .select({
+        status: quotationsTable.status,
+        count: sql<number>`count(*)`,
+      })
+      .from(quotationsTable)
+      .groupBy(quotationsTable.status)) as { status: string; count: number }[];
+    const quotationStatusCounts = quotationStatusCountsRaw.reduce<Record<string, number>>((acc, row) => {
+      acc[row.status] = parseInt(row.count?.toString() || "0");
+      return acc;
+    }, {});
+
+    // Recent Purchase Orders with supplier
+    const recentPurchaseOrders = (await db
+      .select({
+        id: purchaseOrdersTable.id,
+        poNumber: purchaseOrdersTable.poNumber,
+        supplierId: purchaseOrdersTable.supplierId,
+        total: purchaseOrdersTable.total,
+        currency: purchaseOrdersTable.currency,
+        status: purchaseOrdersTable.status,
+        createdAt: purchaseOrdersTable.createdAt,
+        supplierName: (suppliersTable as any).name,
+      } as any)
+      .from(purchaseOrdersTable)
+      .leftJoin(suppliersTable, eq(purchaseOrdersTable.supplierId, suppliersTable.id))
+      .orderBy(desc(purchaseOrdersTable.createdAt))
+      .limit(8)) as any[];
+
+    // Recent Quotations
+    const recentQuotations = (await db
+      .select({
+        id: quotationsTable.id,
+        quotationNumber: quotationsTable.quotationNumber,
+        clientName: quotationsTable.clientName,
+        total: quotationsTable.total,
+        currency: quotationsTable.currency,
+        status: quotationsTable.status,
+        createdAt: quotationsTable.createdAt,
+      } as any)
+      .from(quotationsTable)
+      .orderBy(desc(quotationsTable.createdAt))
+      .limit(8)) as any[];
 
     res.json({
       stats: {
@@ -167,6 +224,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         quotationsThisMonth: parseInt(quotationsThisMonth[0]?.count?.toString() || "0"),
         activeRequests: parseInt(activeRequests[0]?.count?.toString() || "0"),
         openPOs: parseInt(openPOs[0]?.count?.toString() || "0"),
+        poStatusCounts,
+        quotationStatusCounts,
         rfqs: {
           total: parseInt(totalRFQs[0]?.count?.toString() || "0"),
           active: parseInt(rfqsActive[0]?.count?.toString() || "0"),
@@ -188,6 +247,14 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
           orderCount: parseInt(ts.count?.toString() || "0"),
         };
       }),
+      recentPurchaseOrders: recentPurchaseOrders.map((po: any) => ({
+        ...po,
+        total: parseFloat(po.total),
+      })),
+      recentQuotations: recentQuotations.map((q: any) => ({
+        ...q,
+        total: parseFloat(q.total),
+      })),
       quotationTrend: quotationTrend.map((qt) => ({
         month: qt.month,
         count: parseInt(qt.count?.toString() || "0"),

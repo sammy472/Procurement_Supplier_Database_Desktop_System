@@ -12,7 +12,7 @@ export default function Dashboard() {
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       try {
-        const response = await apiClient.get("/dashboard/stats");
+        const response = await apiClient.get("/dashboard/stats", { params: { months: 12 } });
         return response.data;
       } catch (error) {
         throw new Error(handleApiError(error));
@@ -363,6 +363,113 @@ export default function Dashboard() {
               </p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Detailed Sections */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Purchase Orders Detail */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Purchase Orders</h2>
+            <MdShoppingCart className="w-7 h-7 text-violet-600" />
+          </div>
+          {/* Status breakdown */}
+          <div className="flex flex-wrap gap-3 mb-4">
+            {Object.entries(stats?.stats?.poStatusCounts || {}).map(([k, v]: any) => (
+              <span key={k} className="px-3 py-1 text-xs rounded-se-md rounded-es-md bg-gray-100 dark:bg-[#0f1929] text-gray-700 dark:text-gray-300">
+                {k}: <span className="font-semibold">{v}</span>
+              </span>
+            ))}
+          </div>
+          {/* Recent POs */}
+          <div className="overflow-x-auto">
+            {stats?.recentPurchaseOrders?.length > 0 ? (
+              <table className="table">
+                <thead>
+                  <tr className="dark:border-gray-600">
+                    <th className="dark:text-gray-300">PO #</th>
+                    <th className="dark:text-gray-300">Supplier</th>
+                    <th className="dark:text-gray-300">Total</th>
+                    <th className="dark:text-gray-300">Status</th>
+                    <th className="dark:text-gray-300">Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.recentPurchaseOrders.map((po: any) => (
+                    <tr key={po.id} className="dark:border-gray-600">
+                      <td className="font-medium dark:text-gray-300">{po.poNumber}</td>
+                      <td className="dark:text-gray-300">{po.supplierName || "N/A"}</td>
+                      <td className="dark:text-gray-300">{(po.currency || "GHC")} {Number(po.total).toFixed(2)}</td>
+                      <td>
+                        <span className="px-2 py-1 text-xs rounded-se-md rounded-es-md bg-gray-100 dark:bg-[#0f1929] text-gray-700 dark:text-gray-300">
+                          {po.status}
+                        </span>
+                      </td>
+                      <td className="dark:text-gray-300">{new Date(po.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <MdInbox className="w-10 h-10 mx-auto mb-2 text-gray-400" />
+                <p className="text-gray-500 dark:text-gray-400">No recent purchase orders</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quotations Detail */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Quotations</h2>
+            <MdDescription className="w-7 h-7 text-emerald-600" />
+          </div>
+          {/* Status breakdown */}
+          <div className="flex flex-wrap gap-3 mb-4">
+            {Object.entries(stats?.stats?.quotationStatusCounts || {}).map(([k, v]: any) => (
+              <span key={k} className="px-3 py-1 text-xs rounded-se-md rounded-es-md bg-gray-100 dark:bg-[#0f1929] text-gray-700 dark:text-gray-300">
+                {k}: <span className="font-semibold">{v}</span>
+              </span>
+            ))}
+          </div>
+          {/* Recent Quotations */}
+          <div className="overflow-x-auto">
+            {stats?.recentQuotations?.length > 0 ? (
+              <table className="table">
+                <thead>
+                  <tr className="dark:border-gray-600">
+                    <th className="dark:text-gray-300">Quotation #</th>
+                    <th className="dark:text-gray-300">Client</th>
+                    <th className="dark:text-gray-300">Total</th>
+                    <th className="dark:text-gray-300">Status</th>
+                    <th className="dark:text-gray-300">Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.recentQuotations.map((q: any) => (
+                    <tr key={q.id} className="dark:border-gray-600">
+                      <td className="font-medium dark:text-gray-300">{q.quotationNumber}</td>
+                      <td className="dark:text-gray-300">{q.clientName}</td>
+                      <td className="dark:text-gray-300">{(q.currency || "GHC")} {Number(q.total).toFixed(2)}</td>
+                      <td>
+                        <span className="px-2 py-1 text-xs rounded-se-md rounded-es-md bg-gray-100 dark:bg-[#0f1929] text-gray-700 dark:text-gray-300">
+                          {q.status}
+                        </span>
+                      </td>
+                      <td className="dark:text-gray-300">{new Date(q.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <MdInbox className="w-10 h-10 mx-auto mb-2 text-gray-400" />
+                <p className="text-gray-500 dark:text-gray-400">No recent quotations</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
