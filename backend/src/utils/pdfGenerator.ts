@@ -486,7 +486,7 @@ export const generatePurchaseOrderPDFNEW = (
   doc.moveTo(contentLeft + 60, signatureY + 50)
     .lineTo(contentLeft + 170, signatureY + 50)
     .stroke();
-  doc.fontSize(12).font("Helvetica").fillColor(textColor).text("Signature:", contentLeft, doc.y);
+  doc.fontSize(12).font("Helvetica").fillColor(textColor).text("Signature:", contentLeft, doc.y+ 80);
 
   doc.end();
 };
