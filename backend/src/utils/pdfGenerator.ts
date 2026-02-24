@@ -1096,7 +1096,8 @@ export const generateQuotationPDFNEW = (quotation: QuotationData, res: Response,
         minHeight: itemHeight-5,
         padding: 5,
         align:{x: 'center', y: 'bottom' },
-        backgroundColor: '#393737ff',
+        backgroundColor: '#212020ff',
+        textColor: '#ffffff',
       }
     }).row([info.label.trim(), info.value as string]);
   });
@@ -1348,7 +1349,8 @@ export const generateQuotationPDFBuffer = (quotation: QuotationData, company: st
         minHeight: itemHeight-5,
         padding: 5,
         align:{x: 'center', y: 'bottom' },
-        backgroundColor: '#393737ff',
+        backgroundColor: '#212020ff',
+        textColor: '#ffffff',
       }
     }).row([info.label.trim(), info.value as string]);
   });
