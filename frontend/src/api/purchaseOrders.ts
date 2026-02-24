@@ -21,6 +21,8 @@ export interface PurchaseOrder {
   vatAmount: number;
   total: number;
   expectedDeliveryDate?: string;
+  shippingMethod?: string;
+  shippingService?: string;
   paymentTerms?: string;
   status: "draft" | "sent" | "delivered" | "closed";
   createdAt: string;
@@ -86,6 +88,14 @@ export const purchaseOrdersApi = {
   delete: async (id: string): Promise<void> => {
     try {
       await apiClient.delete(`/purchase-orders/${id}`);
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  sendEmail: async (id: string, data: { recipientEmail: string; subject?: string; body?: string }): Promise<void> => {
+    try {
+      await apiClient.post(`/purchase-orders/${id}/email`, data);
     } catch (error) {
       throw new Error(handleApiError(error));
     }

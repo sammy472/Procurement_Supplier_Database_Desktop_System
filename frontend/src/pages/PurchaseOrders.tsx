@@ -4,7 +4,7 @@ import { purchaseOrdersApi, PurchaseOrder } from "../api/purchaseOrders";
 import { suppliersApi } from "../api/suppliers";
 import { toast } from "react-toastify";
 import { useAuthStore } from "../store/authStore";
-import { MdClose, MdAdd, MdDelete, MdVisibility, MdSearch } from "react-icons/md";
+import { MdClose, MdAdd, MdDelete, MdVisibility, MdSearch, MdEmail } from "react-icons/md";
 import { DocumentViewer } from "../components/DocumentViewer";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 
@@ -39,6 +39,8 @@ export default function PurchaseOrders() {
   }, [debouncedSearch]);
   const [showModal, setShowModal] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailData, setEmailData] = useState({ recipientEmail: "", subject: "", body: "" });
   const [viewingPO, setViewingPO] = useState<PurchaseOrder | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<POFormData>({
@@ -101,6 +103,18 @@ export default function PurchaseOrders() {
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       toast.success("Purchase order updated successfully");
       resetForm();
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: (data: { id: string; recipientEmail: string; subject?: string; body?: string }) =>
+      purchaseOrdersApi.sendEmail(data.id, data),
+    onSuccess: () => {
+      toast.success("Email sent successfully");
+      setIsEmailModalOpen(false);
     },
     onError: (error: any) => {
       toast.error(error.message);
@@ -246,6 +260,16 @@ export default function PurchaseOrders() {
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+
+  const handleOpenEmailModal = (po: PurchaseOrder) => {
+    const supplier = suppliers.find((s) => s.id === po.supplierId);
+    setEmailData({
+      recipientEmail: supplier?.email || "",
+      subject: `Purchase Order: ${po.poNumber}`,
+      body: `Dear ${supplier?.name || "Supplier"},\n\nPlease find attached the purchase order ${po.poNumber} for your review.\n\nBest regards,\nProcurement Team`,
+    });
+    setIsEmailModalOpen(true);
   };
 
   if (isLoading) {
@@ -891,6 +915,8 @@ export default function PurchaseOrders() {
                         vatRate: viewingPO.vatRate || 0,
                         expectedDeliveryDate: viewingPO.expectedDeliveryDate || "",
                         paymentTerms: viewingPO.paymentTerms || "",
+                        shippingMethod: (viewingPO as any).shippingMethod || "",
+                        shippingService: (viewingPO as any).shippingService || "",
                         status: viewingPO.status,
                       });
                       setShowModal(true);
@@ -906,6 +932,13 @@ export default function PurchaseOrders() {
                 >
                   <MdVisibility className="w-5 h-5 mr-2" />
                   View PDF
+                </button>
+                <button
+                  onClick={() => handleOpenEmailModal(viewingPO)}
+                  className="btn btn-secondary"
+                >
+                  <MdEmail className="w-5 h-5 mr-2" />
+                  Mail
                 </button>
                 <button
                   onClick={async () => {
@@ -947,6 +980,58 @@ export default function PurchaseOrders() {
           isOpen={true}
           onClose={() => setViewerDocument(null)}
         />
+      )}
+
+      {isEmailModalOpen && viewingPO && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#132f4c] rounded-se-md rounded-es-md p-6 w-full max-w-lg mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Email Purchase Order</h2>
+              <button onClick={() => setIsEmailModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                <MdClose className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
+                <input
+                  type="email"
+                  value={emailData.recipientEmail}
+                  onChange={(e) => setEmailData({ ...emailData, recipientEmail: e.target.value })}
+                  className="input"
+                  placeholder="supplier@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Subject</label>
+                <input
+                  type="text"
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
+                <textarea
+                  value={emailData.body}
+                  onChange={(e) => setEmailData({ ...emailData, body: e.target.value })}
+                  className="input"
+                  rows={5}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 mt-4">
+              <button onClick={() => setIsEmailModalOpen(false)} className="btn">Cancel</button>
+              <button
+                onClick={() => emailMutation.mutate({ id: viewingPO.id, ...emailData })}
+                className="btn btn-primary"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

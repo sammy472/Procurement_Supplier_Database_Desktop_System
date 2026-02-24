@@ -286,6 +286,10 @@ export const updateRfq = async (req: AuthRequest, res: Response) => {
 
     const { subject, senderAddress, items, openDate, closeDate, status, assigneeIds } = req.body;
 
+    if (status === "sent" && previous.closeDate && new Date(previous.closeDate).getTime() < Date.now()) {
+      return res.status(400).json({ error: "Cannot mark resolved after the closing date" });
+    }
+
     const [rfq] = await db
       .update(rfqsTable)
       .set({
@@ -410,6 +414,9 @@ export const toggleResolved = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "RFQ not found" });
     }
     const current = existingRows[0];
+    if (resolved === true && current.closeDate && new Date(current.closeDate).getTime() < Date.now()) {
+      return res.status(400).json({ error: "Cannot mark resolved after the closing date" });
+    }
     const nextStatus = resolved === true ? ("sent" as any) : ("active" as any);
     const [rfq] = await db
       .update(rfqsTable)

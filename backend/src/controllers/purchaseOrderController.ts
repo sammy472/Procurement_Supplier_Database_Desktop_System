@@ -6,7 +6,8 @@ import { getTable } from "../utils/dbHelper";
 import { eq, like, desc, and } from "drizzle-orm";
 import { generatePONumber } from "../utils/poNumber";
 import { logActivity } from "../utils/audit";
-import { generatePurchaseOrderPDFNEW } from "../utils/pdfGenerator";
+import { generatePurchaseOrderPDFNEW, generatePurchaseOrderPDFBuffer } from "../utils/pdfGenerator";
+import { sendEmail } from "../utils/email";
 
 type PurchaseOrderRow = typeof schema.purchaseOrders.$inferSelect;
 type SupplierRow = typeof schema.suppliers.$inferSelect;
@@ -109,7 +110,7 @@ export const createPurchaseOrder = async (req: AuthRequest, res: Response) => {
     const vatAmount = ((subtotal) - (discount)) * ((vatRate) / 100);
     const total = subtotal - discount + vatAmount;
 
-    const poData = {
+    const poData: any = {
       poNumber,
       createdBy: req.user!.id,
       lineItems: JSON.stringify(lineItems),
@@ -120,8 +121,10 @@ export const createPurchaseOrder = async (req: AuthRequest, res: Response) => {
       total: total.toString(),
       currency,
       ...otherData,
-      expectedDeliveryDate: new Date(otherData.expectedDeliveryDate),
     };
+    if (otherData?.expectedDeliveryDate) {
+      poData.expectedDeliveryDate = new Date(otherData.expectedDeliveryDate);
+    }
     console.log("Creating Purchase Order with data:", poData);
 
     const purchaseOrdersTable = getTable("purchaseOrders", req.user?.company);
@@ -174,7 +177,10 @@ export const updatePurchaseOrder = async (req: AuthRequest, res: Response) => {
       ...otherData
     } = req.body;
 
-    const updateData: any = { ...otherData, updatedAt: new Date(), expectedDeliveryDate: new Date(otherData.expectedDeliveryDate) };
+    const updateData: any = { ...otherData, updatedAt: new Date() };
+    if (otherData?.expectedDeliveryDate) {
+      updateData.expectedDeliveryDate = new Date(otherData.expectedDeliveryDate);
+    }
 
     if (currency) {
       updateData.currency = currency;
@@ -304,6 +310,88 @@ export const exportPurchaseOrderPDF = async (req: AuthRequest, res: Response) =>
     };
 
     generatePurchaseOrderPDFNEW(poWithSupplierAndCurrency as any, req.user?.company, res, inline);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const emailPurchaseOrderPDF = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { recipientEmail, subject, body } = req.body;
+
+    if (!recipientEmail) {
+      return res.status(400).json({ error: "Recipient email is required" });
+    }
+
+    const purchaseOrdersTable = getTable("purchaseOrders", req.user?.company);
+    const suppliersTable = getTable("suppliers", req.user?.company);
+    const quotationsTable = getTable("quotations", req.user?.company);
+
+    const purchaseOrders = (await db
+      .select()
+      .from(purchaseOrdersTable)
+      .where(eq(purchaseOrdersTable.id, id))
+      .limit(1)) as PurchaseOrderRow[];
+
+    if (purchaseOrders.length === 0) {
+      return res.status(404).json({ error: "Purchase order not found" });
+    }
+
+    const po = purchaseOrders[0];
+
+    const suppliers = (await db
+      .select()
+      .from(suppliersTable)
+      .where(eq(suppliersTable.id, po.supplierId))
+      .limit(1)) as SupplierRow[];
+    const supplier = suppliers[0];
+
+    let currency: string | undefined = (po as any).currency;
+    if (!currency && po.quotationId) {
+      const quotations = (await db
+        .select({ currency: quotationsTable.currency })
+        .from(quotationsTable)
+        .where(eq(quotationsTable.id, po.quotationId))
+        .limit(1)) as Array<{ currency: string }>;
+      currency = quotations[0]?.currency;
+    }
+
+    const poData = {
+      ...po,
+      supplierName: supplier?.name || "",
+      supplierAddress: supplier?.address || "",
+      supplierEmail: supplier?.email || "",
+      supplierPhone: supplier?.phone || "",
+      currency,
+    };
+
+    const pdfBuffer = await generatePurchaseOrderPDFBuffer(poData as any, req.user?.company);
+
+    await sendEmail({
+      to: recipientEmail,
+      subject: subject || `Purchase Order: ${po.poNumber}`,
+      html: body || `Please find attached the purchase order ${po.poNumber}.`,
+      attachments: [
+        {
+          filename: `Purchase_Order_${po.poNumber}.pdf`,
+          contentBase64: pdfBuffer.toString("base64"),
+          contentType: "application/pdf",
+        },
+      ],
+      from: req.user?.email,
+    });
+
+    await logActivity({
+      userId: req.user!.id,
+      action: "email",
+      entityType: "purchase_order",
+      entityId: id,
+      description: `Emailed purchase order ${po.poNumber} to ${recipientEmail}`,
+      req: req as any,
+    });
+
+    res.json({ message: "Email sent successfully" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
